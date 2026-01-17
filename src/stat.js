@@ -46,18 +46,20 @@ class Stat {
   }
 
   drawBar(ctx, x, y, label, barImage = null) {
-    const width = 150;
-    const height = 40;
-    const labelWidth = width * 0.1; // Left 10% for label space
+    const barWidth = 150; // Progress bar width
+    const barHeight = 40; // Bar height
+    const imageWidth = 180; // Overlay image width
+    const imageHeight = 60; // Overlay image height
+    const labelWidth = barWidth * 0.15; // Left space for label
     const barStartX = x + labelWidth;
-    const barWidth = width - labelWidth;
+    const actualBarWidth = barWidth - labelWidth;
 
     const percent = (this.displayValue - this.min) / (this.max - this.min);
-    const fillWidth = Math.max(0, percent * barWidth);
+    const fillWidth = Math.max(0, percent * actualBarWidth);
 
     // Draw background bar border
     ctx.strokeStyle = "black";
-    ctx.strokeRect(barStartX, y, barWidth, height);
+    ctx.strokeRect(barStartX, y + (imageHeight - barHeight) / 2, actualBarWidth, barHeight);
 
     // Color based on value
     let barColor = "blue";
@@ -70,11 +72,11 @@ class Stat {
     }
 
     ctx.fillStyle = barColor;
-    ctx.fillRect(barStartX, y, fillWidth, height);
+    ctx.fillRect(barStartX, y + (imageHeight - barHeight) / 2, fillWidth, barHeight);
 
-    // Draw overlay bar image if provided
+    // Draw overlay bar image if provided (larger, on top)
     if (barImage) {
-      ctx.drawImage(barImage, barStartX, y, barWidth, height);
+      ctx.drawImage(barImage, x, y, imageWidth, imageHeight);
     }
   }
 }

@@ -81,11 +81,10 @@ class ResponseManager {
 
     // Generate and play TTS for NPC dialogue (not for player messages)
     if (this.currentResponse.npcMessage) {
-      generateAndPlayTTS(this.currentResponse.npcMessage).catch(err => {
+      generateAndPlayTTS(this.currentResponse.npcMessage, this.currentResponse.npcName).catch(err => {
         console.log("TTS generation skipped or failed:", err);
       });
     }
-    this.requiresAcknowledge = this.currentResponse.requiresAcknowledge;
   }
 
   getProgress() {

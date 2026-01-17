@@ -1,6 +1,17 @@
 class Background {
   constructor(image) {
     this.image = image;
+    this.isLoaded = false;
+    
+    // Wait for image to load before marking as ready
+    this.image.onload = () => {
+      this.isLoaded = true;
+    };
+    
+    this.image.onerror = () => {
+      console.error(`Error loading image: ${this.image.src}`);
+      this.isLoaded = false;
+    };
   }
 
   draw(ctx) {
@@ -8,19 +19,18 @@ class Background {
     ctx.fillStyle = "black";
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
     
+    // Only draw if image is loaded
+    if (!this.isLoaded || !this.image.complete) {
+      return;
+    }
+    
     // Center the image within the canvas
     const canvasWidth = ctx.canvas.width; // 1280
     const canvasHeight = ctx.canvas.height; // 720
     
-    // Get actual image dimensions (wait for image to load)
-    let imgWidth = this.image.width;
-    let imgHeight = this.image.height;
-    
-    // If image hasn't loaded yet, use estimated dimensions
-    if (imgWidth === 0) {
-      imgWidth = 800; // Estimate for PNG backgrounds
-      imgHeight = 600; // Estimate
-    }
+    // Get actual image dimensions
+    const imgWidth = this.image.width;
+    const imgHeight = this.image.height;
     
     // Calculate position to center the image
     const x = (canvasWidth - imgWidth) / 2;
