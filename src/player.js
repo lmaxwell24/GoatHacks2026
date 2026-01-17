@@ -14,6 +14,11 @@ class Player {
         this.stats = [this.food, this.water, this.energy, this.rizz, this.hygiene, this.sanity];
 
         this.mealplan = mealplan;
+
+        this.image = new Image();
+        this.image.width = 100;
+        this.image.height = 100;
+        this.image.src = "./media/images/characters/elliot-goomba.png";
     }
 
     advanceHour = () => this.stats.forEach((stat) => stat.advanceHour);
@@ -25,6 +30,8 @@ class Player {
     advanceSleep = () => this.stats.forEach((stat) => stat.advanceSleep);
 
     render(ctx) {
+      ctx.drawImage(this.image, 400, 150)
+
       for (let i = 0; i < this.stats.length; i++) {
         this.stats[i].drawBar(ctx, 20, i * 40 + 20);
       }
