@@ -26,7 +26,7 @@ class Player {
 
     render(ctx) {
       for (let i = 0; i < this.stats.length; i++) {
-        this.stats[i].drawBar(ctx, 5, i*10);
+        this.stats[i].drawBar(ctx, 20, i * 40 + 20);
       }
     }
 

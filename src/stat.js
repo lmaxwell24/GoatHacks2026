@@ -25,8 +25,8 @@ class Stat {
   }
 
   drawBar(ctx, x, y) {
-    const width = 40;
-    const height = 8;
+    const width = 150;
+    const height = 25;
 
     const percent = (this.value - this.min) / (this.max - this.min);
     const fillWidth = percent * width;

@@ -6,7 +6,7 @@ class Game {
       this.height = 720;
 
       this.player = new Player();
-
+      
     }
 
     render(ctx) {
