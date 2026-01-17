@@ -2,6 +2,8 @@
  * ResponseManager handles displaying system responses and conversations
  * after player decisions
  */
+import { generateAndPlayTTS } from "./ai.js";
+
 class ResponseManager {
   constructor() {
     this.currentResponse = null;
@@ -44,7 +46,9 @@ class ResponseManager {
       sprite1Message: sprite1Message,
       sprite2Name: sprite2Name,
       sprite2Message: sprite2Message,
-      requiresAcknowledge: requiresAcknowledge
+      requiresAcknowledge: requiresAcknowledge,
+      npcMessage: sprite1Name === "You" ? sprite2Message : sprite1Message,
+      npcName: sprite1Name === "You" ? sprite2Name : sprite1Name
     });
     this.processQueue();
   }
@@ -60,7 +64,9 @@ class ResponseManager {
       type: "dialogue",
       spriteName: spriteName,
       message: message,
-      requiresAcknowledge: requiresAcknowledge
+      requiresAcknowledge: requiresAcknowledge,
+      npcMessage: spriteName !== "You" ? message : null,
+      npcName: spriteName !== "You" ? spriteName : null
     });
     this.processQueue();
   }
@@ -71,6 +77,14 @@ class ResponseManager {
     this.currentResponse = this.responseQueue.shift();
     this.isDisplaying = true;
     this.startTime = Date.now();
+    this.requiresAcknowledge = this.currentResponse.requiresAcknowledge;
+
+    // Generate and play TTS for NPC dialogue (not for player messages)
+    if (this.currentResponse.npcMessage) {
+      generateAndPlayTTS(this.currentResponse.npcMessage).catch(err => {
+        console.log("TTS generation skipped or failed:", err);
+      });
+    }
     this.requiresAcknowledge = this.currentResponse.requiresAcknowledge;
   }
 
@@ -133,7 +147,24 @@ class ResponseManager {
     if (progress <= 0) return;
 
     const response = this.currentResponse;
-    const boxHeight = response.type === "conversation" ? 200 : 150;
+    
+    // Make dialogue box about 1/2 screen width, centered
+    const boxWidth = width * 0.5;
+    const boxX = (width - boxWidth) / 2;
+    
+    // Dynamically size dialogue box based on content
+    let boxHeight = 120;
+    if (response.type === "conversation") {
+      boxHeight = 180;
+    } else if (response.type === "dialogue" || response.type === "system") {
+      // Measure text to determine needed height
+      ctx.font = "16px sans-serif";
+      const testMessage = response.message || (response.spriteName ? response.spriteName + ": " + response.message : "");
+      const lines = this.wrapText(testMessage, boxWidth - 80, ctx);
+      boxHeight = 60 + (lines.length * 25) + 20;
+    }
+    
+    // Position box at bottom middle of screen
     const boxY = height - boxHeight - 20;
 
     // Apply fade effect
@@ -141,12 +172,12 @@ class ResponseManager {
 
     // Semi-transparent background
     ctx.fillStyle = `rgba(0, 0, 0, ${0.85 * alpha})`;
-    ctx.fillRect(20, boxY, width - 40, boxHeight);
+    ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
 
     // Border
     ctx.strokeStyle = `rgba(255, 255, 255, ${0.5 * alpha})`;
     ctx.lineWidth = 2;
-    ctx.strokeRect(20, boxY, width - 40, boxHeight);
+    ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
 
     ctx.fillStyle = "white";
     ctx.font = "18px sans-serif";
@@ -155,39 +186,39 @@ class ResponseManager {
     if (response.type === "system") {
       ctx.font = "20px sans-serif";
       ctx.fillStyle = "#FFD700"; // Gold for system messages
-      const lines = this.wrapText(response.message, width - 80, ctx);
+      const lines = this.wrapText(response.message, boxWidth - 80, ctx);
       lines.forEach((line, i) => {
-        ctx.fillText(line, 40, boxY + 40 + i * 30);
+        ctx.fillText(line, boxX + 20, boxY + 40 + i * 30);
       });
     } else if (response.type === "dialogue") {
       ctx.fillStyle = "#87CEEB"; // Sky blue for dialogue
       ctx.font = "bold 18px sans-serif";
-      ctx.fillText(response.spriteName + ":", 40, boxY + 35);
+      ctx.fillText(response.spriteName + ":", boxX + 20, boxY + 35);
 
       ctx.fillStyle = "white";
       ctx.font = "16px sans-serif";
-      const lines = this.wrapText(response.message, width - 80, ctx);
+      const lines = this.wrapText(response.message, boxWidth - 80, ctx);
       lines.forEach((line, i) => {
-        ctx.fillText(line, 60, boxY + 60 + i * 25);
+        ctx.fillText(line, boxX + 40, boxY + 60 + i * 25);
       });
     } else if (response.type === "conversation") {
       // First sprite
       ctx.fillStyle = "#87CEEB";
       ctx.font = "bold 16px sans-serif";
-      ctx.fillText(response.sprite1Name + ":", 40, boxY + 30);
+      ctx.fillText(response.sprite1Name + ":", boxX + 20, boxY + 30);
 
       ctx.fillStyle = "white";
       ctx.font = "14px sans-serif";
-      ctx.fillText('"' + response.sprite1Message + '"', 60, boxY + 55);
+      ctx.fillText('"' + response.sprite1Message + '"', boxX + 40, boxY + 55);
 
       // Second sprite
       ctx.fillStyle = "#FF69B4"; // Hot pink for second speaker
       ctx.font = "bold 16px sans-serif";
-      ctx.fillText(response.sprite2Name + ":", 40, boxY + 100);
+      ctx.fillText(response.sprite2Name + ":", boxX + 20, boxY + 100);
 
       ctx.fillStyle = "white";
       ctx.font = "14px sans-serif";
-      ctx.fillText('"' + response.sprite2Message + '"', 60, boxY + 125);
+      ctx.fillText('"' + response.sprite2Message + '"', boxX + 40, boxY + 125);
     }
 
     ctx.globalAlpha = 1;
@@ -206,7 +237,7 @@ class ResponseManager {
         if (shouldShow) {
           ctx.fillStyle = "#FFFF00";
           ctx.font = "italic 14px sans-serif";
-          ctx.fillText("[Press Enter to continue]", width / 2 - 120, boxY - 10);
+          ctx.fillText("[Press Enter to continue]", boxX + (boxWidth / 2) - 120, boxY - 10);
         }
       }
     }

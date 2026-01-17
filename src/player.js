@@ -1,5 +1,6 @@
 import { Stat } from "./stat.js";
 import { MathUtil } from "./mathutil.js";
+import { IMAGE_DIR } from "./background.js";
 
 class Player {
   constructor(game) {
@@ -17,6 +18,29 @@ class Player {
       new Stat({ initialValue: 80, dailyChange: -1 }),
       new Stat({ initialValue: 80, dailyChange: -1 })
     ];
+
+    // Load bar overlay images
+    this.barImages = {
+      food: new Image(),
+      water: new Image(),
+      sleep: new Image(),
+      sanity: new Image(),
+      hygiene: new Image(),
+      rizz: new Image(),
+      grade1: new Image(),
+      grade2: new Image(),
+      grade3: new Image()
+    };
+
+    this.barImages.food.src = `${IMAGE_DIR}/food_bar.png`;
+    this.barImages.water.src = `${IMAGE_DIR}/water_bar.png`;
+    this.barImages.sleep.src = `${IMAGE_DIR}/sleep_bar.png`;
+    this.barImages.sanity.src = `${IMAGE_DIR}/sanity_bar_1.png`;
+    this.barImages.hygiene.src = `${IMAGE_DIR}/hygiene_bar.png`;
+    this.barImages.rizz.src = `${IMAGE_DIR}/rizz_bar.png`;
+    this.barImages.grade1.src = `${IMAGE_DIR}/class_1_bar.png`;
+    this.barImages.grade2.src = `${IMAGE_DIR}/class_2_bar.png`;
+    this.barImages.grade3.src = `${IMAGE_DIR}/class_3_bar.png`;
 
     // Meal plan system - Easy: 15 special swipes a week
     this.mealPlan = {
@@ -187,15 +211,16 @@ class Player {
 
   render(ctx) {
     let y = 10;
-    this.food.drawBar(ctx, 10, y, "Food"); y += 25;
-    this.water.drawBar(ctx, 10, y, "Water"); y += 25;
-    this.sleep.drawBar(ctx, 10, y, "Sleep"); y += 25;
-    this.sanity.drawBar(ctx, 10, y, "Sanity"); y += 25;
-    this.hygiene.drawBar(ctx, 10, y, "Hygiene"); y += 25;
-    this.rizz.drawBar(ctx, 10, y, "Rizz"); y += 25;
+    this.food.drawBar(ctx, 10, y, "Food", this.barImages.food); y += 50;
+    this.water.drawBar(ctx, 10, y, "Water", this.barImages.water); y += 50;
+    this.sleep.drawBar(ctx, 10, y, "Sleep", this.barImages.sleep); y += 50;
+    this.sanity.drawBar(ctx, 10, y, "Sanity", this.barImages.sanity); y += 50;
+    this.hygiene.drawBar(ctx, 10, y, "Hygiene", this.barImages.hygiene); y += 50;
+    this.rizz.drawBar(ctx, 10, y, "Rizz", this.barImages.rizz); y += 50;
 
+    const gradeImages = [this.barImages.grade1, this.barImages.grade2, this.barImages.grade3];
     this.grades.forEach((g, i) => {
-      g.drawBar(ctx, 10, y, `Grade ${i + 1}`); y += 25;
+      g.drawBar(ctx, 10, y, `Grade ${i + 1}`, gradeImages[i]); y += 50;
     });
   }
 }

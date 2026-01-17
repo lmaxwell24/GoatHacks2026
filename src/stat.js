@@ -45,32 +45,37 @@ class Stat {
     this.displayValue = this.value + (this.displayValue - this.value) * (1 - easeProgress);
   }
 
-  drawBar(ctx, x, y, label) {
+  drawBar(ctx, x, y, label, barImage = null) {
     const width = 150;
-    const height = 20;
+    const height = 40;
+    const labelWidth = width * 0.1; // Left 10% for label space
+    const barStartX = x + labelWidth;
+    const barWidth = width - labelWidth;
 
     const percent = (this.displayValue - this.min) / (this.max - this.min);
-    const fillWidth = Math.max(0, percent * width);
+    const fillWidth = Math.max(0, percent * barWidth);
 
+    // Draw background bar border
     ctx.strokeStyle = "black";
-    ctx.strokeRect(x, y, width, height);
+    ctx.strokeRect(barStartX, y, barWidth, height);
 
     // Color based on value
     let barColor = "blue";
     if (this.displayValue < 30) {
-      barColor = "#FF4444"; // Red for critical
+      barColor = "#FF4444";
     } else if (this.displayValue < 60) {
-      barColor = "#FFAA00"; // Orange for low
+      barColor = "#FFAA00";
     } else {
-      barColor = "#00AA00"; // Green for good
+      barColor = "#00AA00";
     }
 
     ctx.fillStyle = barColor;
-    ctx.fillRect(x, y, fillWidth, height);
+    ctx.fillRect(barStartX, y, fillWidth, height);
 
-    ctx.fillStyle = "white";
-    ctx.font = "12px sans-serif";
-    ctx.fillText(`${label}: ${Math.round(this.displayValue)}`, x + 4, y + 14);
+    // Draw overlay bar image if provided
+    if (barImage) {
+      ctx.drawImage(barImage, barStartX, y, barWidth, height);
+    }
   }
 }
 

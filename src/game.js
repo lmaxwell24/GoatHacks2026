@@ -32,6 +32,21 @@ class Game {
     ];
     this.lastDayChecked = this.time.day;
 
+    // Flirt history tracking for dialogue context
+    this.hallwayFlirtHistory = {
+      attempted: 0,
+      succeeded: 0,
+      lastOutcome: null, // 'success' or 'failure'
+      lastDay: -1
+    };
+    
+    this.classFlirtHistory = {
+      attempted: 0,
+      succeeded: 0,
+      lastOutcome: null,
+      lastDay: -1
+    };
+
     this.loadScenes();
 
     window.addEventListener("keydown", (e) => {
@@ -127,7 +142,8 @@ class Game {
         "Use the bathroom",
         "Go back to dorm",
         "Go to class",
-        "Eat"
+        "Eat",
+        "Talk to someone"
       ],
       (choice) => {
         switch (choice) {
@@ -160,6 +176,10 @@ class Game {
 
           case "Eat":
             this.openEatMenu();
+            break;
+
+          case "Talk to someone":
+            this.handleHallwayFlirt();
             break;
         }
       }
@@ -326,11 +346,17 @@ class Game {
       }
     });
 
+    options.push("Talk to someone");
     options.push("Go back");
 
     this.openMenu(
       options,
       (choice) => {
+        if (choice === "Talk to someone") {
+          this.handleClassFlirt();
+          return;
+        }
+
         const classIndex = classNames.findIndex(name => choice.includes(name));
 
         if (classIndex === -1 || choice === "Go back") {
@@ -394,6 +420,256 @@ class Game {
     this.response.showConversation("You", "Hi Professor", professorName, message, true);
     this.response.onDismiss = () => {
       this.openHallwayScene();
+    };
+  }
+
+  handleHallwayFlirt() {
+    this.time.advance(0.25);
+    const sanity = this.player.sanity.getValue();
+    
+    // Success rate based on sanity (higher sanity = better chances)
+    const successChance = Math.max(20, Math.min(80, sanity));
+    const success = Math.random() * 100 < successChance;
+
+    const girls = [
+      { name: "Emma", responses: ["Hey, how's it going?", "What's your name?", "You seem cool."] },
+      { name: "Sarah", responses: ["Hi there!", "Do I know you?", "What's up?"] },
+      { name: "Alex", responses: ["Oh, hey.", "How do I know you?", "I'm listening..."] },
+      { name: "Jordan", responses: ["Hey! What's going on?", "Do I know you from somewhere?", "What's on your mind?"] },
+      { name: "Taylor", responses: ["Oh hi!", "I don't think we've met.", "Sup?"] }
+    ];
+
+    const girl = girls[Math.floor(Math.random() * girls.length)];
+
+    // Track interaction
+    const wasRecentFailure = this.hallwayFlirtHistory.lastOutcome === 'failure' && this.hallwayFlirtHistory.lastDay === this.time.day;
+    const hasTriedBefore = this.hallwayFlirtHistory.attempted > 0;
+    const hasSucceededBefore = this.hallwayFlirtHistory.succeeded > 0;
+
+    if (success) {
+      const rizzGains = Math.floor(Math.random() * 10) + 5; // 5-15 rizz
+      this.player.rizz.changeValue(rizzGains);
+      
+      this.hallwayFlirtHistory.attempted++;
+      this.hallwayFlirtHistory.succeeded++;
+      this.hallwayFlirtHistory.lastOutcome = 'success';
+      this.hallwayFlirtHistory.lastDay = this.time.day;
+
+      // Dialogue changes based on history
+      let successLines;
+      if (hasTriedBefore && hasSucceededBefore) {
+        successLines = [
+          "You: Hey! Good to see you again. Coffee later?",
+          "You: I was hoping I'd run into you. How've you been?",
+          "You: You know, I keep thinking about our last conversation.",
+          "You: I've been wanting to see you again. Coincidence?"
+        ];
+      } else if (wasRecentFailure) {
+        // Second chance - more hopeful
+        successLines = [
+          "You: Hey, I wanted to say sorry about earlier. Can we start over?",
+          "You: I wasn't thinking clearly before. But I meant what I said.",
+          "You: Okay, second time's the charm. Can I get your number?",
+          "You: I've been kicking myself all day. Want to give me another shot?"
+        ];
+      } else {
+        successLines = [
+          "You: Hey, I couldn't help but notice you. What's your name?",
+          "You: You seem really interesting. Want to grab coffee?",
+          "You: I think we'd get along great. What do you say?",
+          "You: That smile is contagious. What are you up to?"
+        ];
+      }
+
+      const girlResponse = hasTriedBefore 
+        ? "Yeah, I remember you. Let's hang out sometime."
+        : girl.responses[Math.floor(Math.random() * girl.responses.length)];
+
+      const yourLine = successLines[Math.floor(Math.random() * successLines.length)];
+      this.response.showConversation("You", yourLine, girl.name, girlResponse, true);
+    } else {
+      const rizzLoss = Math.floor(Math.random() * 5) + 1; // 1-5 rizz
+      this.player.rizz.changeValue(-rizzLoss);
+      
+      this.hallwayFlirtHistory.attempted++;
+      this.hallwayFlirtHistory.lastOutcome = 'failure';
+      this.hallwayFlirtHistory.lastDay = this.time.day;
+
+      // Dialogue changes based on history
+      let failLines;
+      let failResponse;
+
+      if (hasTriedBefore && hasSucceededBefore) {
+        // Been successful before - this is awkward
+        failLines = [
+          "You: Hey, remember me? Maybe this time—",
+          "You: I know we had something before, so... another try?",
+          "You: I'm usually better at this. Can I try again?"
+        ];
+        failResponse = [
+          "Yeah, I remember. And I'm still not interested.",
+          "Sorry, but my answer hasn't changed.",
+          "That was a no last time, and it's still a no."
+        ];
+      } else if (wasRecentFailure) {
+        // Tried and failed earlier today - third attempt
+        failLines = [
+          "You: Okay, one more time. I promise I can do better.",
+          "You: I know I failed twice, but—",
+          "You: Third time's the charm, right?"
+        ];
+        failResponse = [
+          "I think you got the message. Please stop.",
+          "You're sweet, but I'm going to pass. Permanently.",
+          "No means no. I think you know this."
+        ];
+      } else {
+        failLines = [
+          "You: Uh... hi. Do I know you?",
+          "You: Wait, have we met before?",
+          "You: I just... never mind.",
+          "You: Yo, you seem... cool?"
+        ];
+        failResponse = [
+          "Thanks, but I think you have the wrong person.",
+          "Um, I'm not sure what you're going for here.",
+          "That's... kind of weird. Sorry.",
+          "I'm good, thanks though."
+        ];
+      }
+
+      const yourLine = failLines[Math.floor(Math.random() * failLines.length)];
+      const herResponse = failResponse[Math.floor(Math.random() * failResponse.length)];
+      this.response.showConversation("You", yourLine, girl.name, herResponse, true);
+    }
+
+    this.response.onDismiss = () => {
+      this.openHallwayScene();
+    };
+  }
+
+  handleClassFlirt() {
+    this.time.advance(0.25);
+    const sanity = this.player.sanity.getValue();
+    
+    // Success rate based on sanity
+    const successChance = Math.max(20, Math.min(80, sanity));
+    const success = Math.random() * 100 < successChance;
+
+    const classmates = [
+      { name: "Jessica", responses: ["Oh hey! What's up?", "Sure, what's on your mind?", "Yeah, totally."] },
+      { name: "Maya", responses: ["Hi! I've seen you around.", "Oh, okay.", "Sure, I guess."] },
+      { name: "Sophie", responses: ["Hey! How's it going?", "What's good?", "Sup."] },
+      { name: "Rachel", responses: ["Oh hey there!", "Yeah?", "I'm listening."] },
+      { name: "Olivia", responses: ["Hey! What's up?", "Sure.", "That's sweet."] }
+    ];
+
+    const classmate = classmates[Math.floor(Math.random() * classmates.length)];
+
+    // Track interaction
+    const wasRecentFailure = this.classFlirtHistory.lastOutcome === 'failure' && this.classFlirtHistory.lastDay === this.time.day;
+    const hasTriedBefore = this.classFlirtHistory.attempted > 0;
+    const hasSucceededBefore = this.classFlirtHistory.succeeded > 0;
+
+    if (success) {
+      const rizzGains = Math.floor(Math.random() * 12) + 5; // 5-17 rizz (better in class)
+      this.player.rizz.changeValue(rizzGains);
+
+      this.classFlirtHistory.attempted++;
+      this.classFlirtHistory.succeeded++;
+      this.classFlirtHistory.lastOutcome = 'success';
+      this.classFlirtHistory.lastDay = this.time.day;
+
+      // Dialogue changes based on history
+      let successLines;
+      if (hasTriedBefore && hasSucceededBefore) {
+        successLines = [
+          "You: Hey, want to work on the project together again?",
+          "You: I really enjoyed our study session. When are you free?",
+          "You: I was hoping we'd run into each other in class again.",
+          "You: You know, I look forward to seeing you in class now."
+        ];
+      } else if (wasRecentFailure) {
+        // Second chance - more confident
+        successLines = [
+          "You: Hey, I wanted to give that another shot. How about we actually study together?",
+          "You: You know, I've been thinking about what you said. Let's grab coffee?",
+          "You: I wasn't prepared before, but I meant it. Want to work together on the project?",
+          "You: Okay, let me try this properly. Study session tomorrow?"
+        ];
+      } else {
+        successLines = [
+          "You: Hey, I've been meaning to ask... want to study together sometime?",
+          "You: You're always prepared in class. That's impressive.",
+          "You: We should work on the project together.",
+          "You: I think we'd make a good team. For the homework, I mean."
+        ];
+      }
+
+      const classmateResponse = hasTriedBefore 
+        ? "Yeah, I'd like that. Let me know when."
+        : classmate.responses[Math.floor(Math.random() * classmate.responses.length)];
+
+      const yourLine = successLines[Math.floor(Math.random() * successLines.length)];
+      this.response.showConversation("You", yourLine, classmate.name, classmateResponse, true);
+    } else {
+      const rizzLoss = Math.floor(Math.random() * 5) + 1;
+      this.player.rizz.changeValue(-rizzLoss);
+
+      this.classFlirtHistory.attempted++;
+      this.classFlirtHistory.lastOutcome = 'failure';
+      this.classFlirtHistory.lastDay = this.time.day;
+
+      // Dialogue changes based on history
+      let failLines;
+      let failResponse;
+
+      if (hasTriedBefore && hasSucceededBefore) {
+        // Been successful before - this is awkward
+        failLines = [
+          "You: Hey, maybe this time we could—",
+          "You: I know things have been good between us, but what if—",
+          "You: I'm usually better at this. Can I try again?"
+        ];
+        failResponse = [
+          "I think we're better off as study partners.",
+          "Let's keep it professional, okay?",
+          "I value our friendship. Let's not make it weird."
+        ];
+      } else if (wasRecentFailure) {
+        // Tried and failed earlier today
+        failLines = [
+          "You: Okay, third time's the charm. Really.",
+          "You: I promise I'm more interesting than I seem.",
+          "You: One more chance? I swear I'm not this awkward normally."
+        ];
+        failResponse = [
+          "I appreciate the effort, but I'm just not interested.",
+          "You're a good person, but no.",
+          "I think we've done this enough times today."
+        ];
+      } else {
+        failLines = [
+          "You: So, uh, this class is... hard, right?",
+          "You: You seem pretty smart. What are you gonna do after class?",
+          "You: I don't think we've met. I'm... cool.",
+          "You: Do you always sit here, or...?"
+        ];
+        failResponse = [
+          "Yeah, it's not easy. Anyway, I need to focus.",
+          "Thanks, but I should probably pay attention.",
+          "Um, okay... I'm going to step outside real quick.",
+          "I'm actually trying to understand the material, so..."
+        ];
+      }
+
+      const yourLine = failLines[Math.floor(Math.random() * failLines.length)];
+      const herResponse = failResponse[Math.floor(Math.random() * failResponse.length)];
+      this.response.showConversation("You", yourLine, classmate.name, herResponse, true);
+    }
+
+    this.response.onDismiss = () => {
+      this.openClassMenu();
     };
   }
 
