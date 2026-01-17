@@ -19,6 +19,7 @@ class Game {
     update() {
         this.player.update();
     }
+
 }
 
 export { Game };
