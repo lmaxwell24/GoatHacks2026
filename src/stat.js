@@ -1,26 +1,20 @@
-import {MathUtil} from "./mathutil";
+import { MathUtil } from "./mathutil";
 
 class Stat {
-  constructor(initialValue, change, changeMode) {
+  constructor(initialValue = 100, hourlyChange = 0, dailyChange = 0, sleepChange = 0, min = 0, max = 100) {
     this.value = initialValue;
-    this.change = change;
-    this.changeMode = changeMode;
+    this.hourlyChange = hourlyChange;
+    this.dailyChange = dailyChange;
 
-    this.max = 100;
-    this.min = 0;
+    this.min = min;
+    this.max = max;
   }
 
-  hourChange() {
-    if (changeMode == ChangeMode.HOURLY) {
-      value += change;
-    }
-  }
+  advanceHour = () => this.changeValue(this.hourlyChange); 
 
-  dayChange() {
-    if (changeMode == ChangeMode.DAILY) {
-      value += change;
-    }
-  }
+  advanceHour = () => this.changeValue(this.dailyChange);
+
+  advanceHour = () => this.changeValue(this.sleepChange);
 
   getValue() {
     return value;
@@ -30,11 +24,5 @@ class Stat {
     value = MathUtil.clamp(value + amount, min, max);
   }
 }
-
-const ChangeMode = Object.freeze({
-  HOURLY: 'HOURLY',
-  DAILY: 'DAILY',
-  MANUAL: 'MANUAL'
-})
 
 export { Stat };
