@@ -6,7 +6,7 @@ class Game {
       this.height = 720;
 
       this.player = new Player();
-
+      
     }
 
     render(ctx) {
@@ -19,7 +19,6 @@ class Game {
     update() {
         this.player.update();
     }
-
 }
 
 export { Game };
