@@ -1,5 +1,4 @@
 import {Game} from "./game.js";
-import {render} from "./render.js";
 
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");

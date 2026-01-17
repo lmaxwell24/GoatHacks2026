@@ -1,3 +1,5 @@
+import { Player } from "./player.js";
+
 class Game {
     constructor() {
       this.width = 1280;
@@ -14,28 +16,10 @@ class Game {
         this.player.render(ctx);
     }
 
-    addPlayer(player) {
-        if (this.state === 'waiting') {
-            this.players.push(player);
-            console.log(`Player ${player.name} has joined the game.`);
-        } else {
-            console.log('Cannot join, game already started.');
-        }
+    update() {
+        this.player.update();
     }
 
-    startGame() {
-        if (this.players.length > 0) {
-            this.state = 'playing';
-            console.log('Game has started!');
-        } else {
-            console.log('Cannot start game, no players have joined.');
-        }
-    }
-
-    endGame() {
-        this.state = 'ended';
-        console.log('Game has ended!');
-    }
 }
 
 export { Game };
