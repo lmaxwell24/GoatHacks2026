@@ -19,7 +19,11 @@ class Game {
     update() {
         this.player.update();
     }
+<<<<<<< Updated upstream
 
+=======
+    
+>>>>>>> Stashed changes
 }
 
 export { Game };
