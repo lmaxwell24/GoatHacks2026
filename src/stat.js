@@ -1,7 +1,7 @@
-import { MathUtil } from "./mathutil";
+import { MathUtil } from "./mathutil.js";
 
 class Stat {
-  constructor(initialValue = 100, hourlyChange = 0, dailyChange = 0, sleepChange = 0, min = 0, max = 100) {
+  constructor({initialValue = 100, hourlyChange = 0, dailyChange = 0, sleepChange = 0, min = 0, max = 100} = {}) {
     this.value = initialValue;
     this.hourlyChange = hourlyChange;
     this.dailyChange = dailyChange;
@@ -17,11 +17,25 @@ class Stat {
   advanceHour = () => this.changeValue(this.sleepChange);
 
   getValue() {
-    return value;
+    return this.value;
   }
 
   changeValue(amount) {
-    value = MathUtil.clamp(value + amount, min, max);
+    this.value = MathUtil.clamp(this.value + this.amount, this.min, this.max);
+  }
+
+  drawBar(ctx, x, y) {
+    const width = 40;
+    const height = 8;
+
+    const percent = (this.value - this.min) / (this.max - this.min);
+    const fillWidth = percent * width;
+
+    ctx.strokeStyle = "black";
+    ctx.strokeRect(x, y, width, height);
+
+    ctx.fillStyle = "blue";
+    ctx.fillRect(x, y, fillWidth, height);
   }
 }
 
