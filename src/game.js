@@ -54,10 +54,12 @@ class Game {
     };
 
     this.sceneManager.addScene("dorm", new Background(makeBg("dorm.png")));
-    this.sceneManager.addScene("daka", new Background(makeBg("daka.png")));
+    this.sceneManager.addScene("daka", new Background(makeBg("daka.jpg")));
     this.sceneManager.addScene("cc", new Background(makeBg("cc.png")));
     this.sceneManager.addScene("hallway", new Background(makeBg("hallway.png")));
     this.sceneManager.addScene("classroom", new Background(makeBg("classroom.png")));
+    this.sceneManager.addScene("bathroom", new Background(makeBg("bathroom.jpg")));
+    this.sceneManager.addScene("halalshack", new Background(makeBg("halalshack.jpg")));
 
     this.sceneManager.setScene("dorm");
   }
@@ -130,8 +132,22 @@ class Game {
       (choice) => {
         switch (choice) {
           case "Use the bathroom":
+            this.setLocation("bathroom");
+            const bathroomDialogues = [
+              "Why does it smell like that?",
+              "Is this even sanitary?",
+              "I've seen worse.",
+              "Definitely flushing twice.",
+              "Let's not think too hard about this.",
+              "This is fine."
+            ];
+            const bathroomMsg = bathroomDialogues[Math.floor(Math.random() * bathroomDialogues.length)];
+            this.response.showDialogue("You", bathroomMsg, true);
+            this.response.onDismiss = () => {
+              this.openHallwayScene();
+            };
             this.performAction({ type: "use_bathroom" });
-            this.openHallwayScene();
+            this.time.advance(0.5);
             break;
 
           case "Go back to dorm":
@@ -155,11 +171,20 @@ class Game {
       [
         "Eat at DAKA",
         "Eat at CC",
+        "Check Halal Shack",
         "Go back"
       ],
       (choice) => {
         switch (choice) {
           case "Eat at DAKA":
+            if (this.player.getRemainingSwipes() <= 0) {
+              this.response.showSystemResponse("You don't have any meal swipes left!");
+              this.response.onDismiss = () => {
+                this.openEatMenu();
+              };
+              return;
+            }
+
             this.setLocation("daka");
             this.player.eatAtDAKA();
             const dakaMessages = [
@@ -177,6 +202,14 @@ class Game {
             break;
 
           case "Eat at CC":
+            if (this.player.getRemainingSwipes() <= 0) {
+              this.response.showSystemResponse("You don't have any meal swipes left!");
+              this.response.onDismiss = () => {
+                this.openEatMenu();
+              };
+              return;
+            }
+
             this.setLocation("cc");
             this.player.eatAtCC();
             const ccMessages = [
@@ -191,6 +224,24 @@ class Game {
               this.openHallwayScene();
             };
             this.time.advance(1);
+            break;
+
+          case "Check Halal Shack":
+            this.setLocation("halalshack");
+            this.time.advance(1);
+            const disappointedMessages = [
+              "Closed. Of course it's closed.",
+              "...It's locked. Why am I even surprised?",
+              "Nope. Closed again. This never works out.",
+              "Yeah, it's closed. As always.",
+              "Really? REALLY? Closed. I should have known.",
+              "I've learned not to expect anything from this place."
+            ];
+            const message = disappointedMessages[Math.floor(Math.random() * disappointedMessages.length)];
+            this.response.showDialogue("You", message, true);
+            this.response.onDismiss = () => {
+              this.openHallwayScene();
+            };
             break;
 
           case "Go back":
@@ -250,7 +301,7 @@ class Game {
             break;
 
           case "Go back":
-            this.openHallwayScene();
+            this.openStartingScene();
             break;
         }
       }
@@ -260,29 +311,18 @@ class Game {
   openClassMenu() {
     this.setLocation("classroom");
 
-    // Check if classes are available at this time (8 AM to 5 PM)
-    const isClassTime = this.time.hour >= 8 && this.time.hour < 17;
+    const classNames = ["Calculus II", "Physics I", "Intro to Programming"];
 
     const options = [];
-    const classNames = ["Calculus II", "Physics I", "Intro to Programming"];
-    const classIndices = [0, 1, 2];
-
     classNames.forEach((name, i) => {
-      // Check if class can be attended today
       const attendedToday = this.classAttendanceToday[i];
       const isDoubleDay = this.classDoubleDays[i] === this.time.day;
       const maxAttendance = isDoubleDay ? 2 : 1;
-      const canAttend = attendedToday < maxAttendance && isClassTime;
 
-      if (canAttend) {
+      if (attendedToday < maxAttendance) {
         options.push(name);
       } else {
-        // Show why it's unavailable
-        if (!isClassTime) {
-          options.push(`${name} (8 AM - 5 PM only)`);
-        } else {
-          options.push(`${name} (Already attended today)`);
-        }
+        options.push(`${name} (Already attended today)`);
       }
     });
 
@@ -303,7 +343,7 @@ class Game {
         const isDoubleDay = this.classDoubleDays[classIndex] === this.time.day;
         const maxAttendance = isDoubleDay ? 2 : 1;
 
-        if (attendedToday >= maxAttendance || !isClassTime) {
+        if (attendedToday >= maxAttendance) {
           this.response.showSystemResponse("You can't attend this class right now.");
           return;
         }
@@ -316,10 +356,31 @@ class Game {
   }
 
   handleClassAttendance(className, professorName, gradeIndex) {
-    const gradeBoost = Math.floor(Math.random() * 8) + 2; // Random 2-9 points
+    const isClassTime = this.time.hour >= 8 && this.time.hour < 17;
 
+    // If not during class hours, show a rude classmate comment
+    if (!isClassTime) {
+      const rudeComments = [
+        "Why are you even here right now? Did you sleep through the day?",
+        "Bro, this class ended like 10 hours ago. Are you okay?",
+        "Dude, what? That's not when we meet.",
+        "I think you're lost, man. This room's not being used right now.",
+        "Uh... the class doesn't meet now. Did you forget to check your schedule?"
+      ];
+
+      const comment = rudeComments[Math.floor(Math.random() * rudeComments.length)];
+      this.response.showConversation("Classmate", comment, "You", "Oh... right. My bad.", true);
+      this.response.onDismiss = () => {
+        this.openHallwayScene();
+      };
+      this.time.advance(0.5); // 30 minutes
+      return;
+    }
+
+    // Normal class attendance
+    const gradeBoost = Math.floor(Math.random() * 8) + 2; // Random 2-9 points
     this.player.grades[gradeIndex].changeValue(gradeBoost);
-    this.time.advance(1);
+    this.time.advance(0.5); // 30 minutes
 
     const professorMessages = [
       `Nice to see you in class today.`,
@@ -339,6 +400,12 @@ class Game {
   setLocation(name) {
     this.currentLocation = name;
     this.sceneManager.setScene(name);
+  }
+
+  formatTime(hour24) {
+    const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+    const ampm = hour24 < 12 ? "AM" : "PM";
+    return `${hour12}:00 ${ampm}`;
   }
 
   update() {
@@ -413,7 +480,12 @@ class Game {
 
     ctx.fillStyle = "white";
     ctx.font = "16px sans-serif";
-    ctx.fillText(`Week ${this.time.week}, Day ${this.time.day}, Hour ${this.time.hour}:00`, 10, this.height - 20);
+    ctx.fillText(`Week ${this.time.week}, Day ${this.time.day}, ${this.formatTime(this.time.hour)}`, 10, this.height - 20);
+
+    // Display meal swipes
+    ctx.fillStyle = "white";
+    ctx.font = "14px sans-serif";
+    ctx.fillText(`Meals: ${this.player.getSwipesString()}`, 10, this.height - 40);
 
     if (this.ending) {
       ctx.fillStyle = "rgba(0,0,0,0.7)";

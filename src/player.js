@@ -61,6 +61,14 @@ class Player {
     this.grades.forEach(g => g.update());
   }
 
+  getRemainingSwipes() {
+    return this.mealPlan.normal + this.mealPlan.special;
+  }
+
+  getSwipesString() {
+    return `Normal: ${this.mealPlan.normal} | Special: ${this.mealPlan.special}`;
+  }
+
   sleepHours(hours) {
     this.sleep.changeValue(hours * 10);
     this.sanity.changeValue(50);
@@ -73,7 +81,7 @@ class Player {
     } else if (this.mealPlan.special > 0) {
       this.mealPlan.special--;
     } else {
-      return;
+      return false; // No swipes available
     }
 
     this.food.changeValue(30);
@@ -83,6 +91,8 @@ class Player {
       this.sick = true;
       this.sanity.changeValue(-10);
     }
+
+    return true; // Successfully ate
   }
 
   drinkSoda() {
@@ -95,8 +105,18 @@ class Player {
   }
 
   eatAtCC() {
+    if (this.mealPlan.normal > 0) {
+      this.mealPlan.normal--;
+    } else if (this.mealPlan.special > 0) {
+      this.mealPlan.special--;
+    } else {
+      return false; // No swipes available
+    }
+
     this.food.changeValue(30);
     this.water.changeValue(10);
+
+    return true; // Successfully ate
   }
 
   drinkMonster() {
