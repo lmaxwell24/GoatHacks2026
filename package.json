@@ -1,0 +1,15 @@
+{
+  "name": "goathacks2025",
+  "packageManager": "yarn@4.11.0",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "dev:host": "node server-host.js",
+    "start": "NODE_ENV=production node server-host.js"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "vite": "^7.3.1"
+  }
+}
