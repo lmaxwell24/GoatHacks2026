@@ -4,8 +4,10 @@ class Background {
   }
 
   draw(ctx) {
-    ctx.draw(this.image, 0, 0);
+    ctx.drawImage(this.image, 0, 0);
   }
 }
 
-export { Background };
+const IMAGE_DIR = "./media/images";
+
+export { Background, IMAGE_DIR };
