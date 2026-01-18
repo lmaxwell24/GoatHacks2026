@@ -45,7 +45,7 @@ class TileType {
         this.loadImage();
     }
 
-    loadImage(imageDir = "src/media/images/tiles") {
+    loadImage(imageDir = "/src/media/images/tiles") {
         if (this.isAutoTile) {
             this.autotileImages = new Map();
             const wallDir = `${imageDir}/wall`;
@@ -98,17 +98,26 @@ class TileMap {
         this.spawnPoints = [];
     }
 
-    static async fromFile(path, tileSize = 32) {
+    static async fromFile(path, mapName, tileSize = 32) {
         const tilemap = new TileMap(tileSize);
         const response = await fetch(path);
         const data = await response.json();
-        const mapName = Object.keys(data)[0];
         const rawMap = data[mapName];
+        if (!rawMap) {
+            console.error(`Map "${mapName}" not found in ${path}`);
+            return null;
+        }
         tilemap.load(rawMap);
         return tilemap;
     }
 
     load(tilemapData) {
+        if (!tilemapData || tilemapData.length === 0) {
+            this.height = 0;
+            this.width = 0;
+            this.tiles = [];
+            return;
+        }
         this.height = tilemapData.length;
         this.width = tilemapData[0].length;
         this.tiles = [];
@@ -117,7 +126,7 @@ class TileMap {
         for (let j = 0; j < this.height; j++) {
             this.tiles[j] = [];
             for (let i = 0; i < this.width; i++) {
-                const char = tilemapData[j][i];
+                const char = tilemapData[j][i] || ' ';
                 const type = tileFromChar(char);
                 this.tiles[j][i] = new Tile(i, j, type);
                 if (type === TILE_TYPES.SPAWN) {
@@ -125,6 +134,25 @@ class TileMap {
                 }
             }
         }
+    }
+
+    isWorldRectCollidable(rect) {
+        const points = [
+            { x: rect.x, y: rect.y }, // top-left
+            { x: rect.x + rect.width, y: rect.y }, // top-right
+            { x: rect.x, y: rect.y + rect.height }, // bottom-left
+            { x: rect.x + rect.width, y: rect.y + rect.height }, // bottom-right
+        ];
+
+        for (const point of points) {
+            const tileX = Math.floor(point.x / this.tileSize);
+            const tileY = Math.floor(point.y / this.tileSize);
+            const tile = this.getTileAt(tileX, tileY);
+            if (tile && tile.type.isCollidable) {
+                return true;
+            }
+        }
+        return false;
     }
 
     render(ctx, offsetX = 0, offsetY = 0) {
@@ -185,7 +213,7 @@ class TileMap {
             imageToDraw = type.autotileImages.get(fallbackMask);
         }
 
-        if (imageToDraw && imageToDraw.complete && imageToDraw.naturalWidth !== 0) {
+        if (imageToDraw && imageToDraw.complete) {
             ctx.drawImage(imageToDraw, dx, dy, this.tileSize, this.tileSize);
         } else {
             // Fallback for autotile if images are not loaded yet

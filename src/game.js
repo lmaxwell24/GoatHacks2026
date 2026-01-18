@@ -3,7 +3,9 @@ import {EventManager} from "./events.js";
 import {Menu} from "./menu.js";
 import {Player} from "./player.js";
 import {ResponseManager} from "./response.js";
+import {Scene} from "./scene.js";
 import {SceneManager} from "./sceneManager.js";
+import {TileMap} from "./tile.js";
 import {TimeManager} from "./timeManager.js";
 
 class Game {
@@ -17,6 +19,8 @@ class Game {
     this.events = new EventManager(this);
     this.menu = new Menu();
     this.response = new ResponseManager();
+
+    this.debug = true;
 
     this.currentLocation = "dorm";
     this.ending = null;
@@ -44,8 +48,6 @@ class Game {
     this.classFlirtHistory =
         {attempted : 0, succeeded : 0, lastOutcome : null, lastDay : -1};
 
-    this.loadScenes();
-
     this.activeKeys = new Set();
 
     window.addEventListener("keydown", (e) => {
@@ -71,28 +73,35 @@ class Game {
     });
   }
 
-  loadScenes() {
+  async initialize() {
+    await this.loadScenes();
+    this.sceneManager.setScene("dorm", this.player);
+  }
+
+  async loadScenes() {
     const makeBg = (file) => {
       const img = new Image();
       img.width = this.width;
       img.height = this.height;
       img.src = IMAGE_DIR + "/" + file;
-      return img; // <-- FIXED
+      return new Background(img);
     };
 
-    this.sceneManager.addScene("dorm", new Background(makeBg("dorm.png")));
-    this.sceneManager.addScene("daka", new Background(makeBg("daka.jpg")));
-    this.sceneManager.addScene("cc", new Background(makeBg("cc.png")));
-    this.sceneManager.addScene("hallway",
-                               new Background(makeBg("hallway.png")));
-    this.sceneManager.addScene("classroom",
-                               new Background(makeBg("classroom.png")));
-    this.sceneManager.addScene("bathroom",
-                               new Background(makeBg("bathroom.jpg")));
-    this.sceneManager.addScene("halalshack",
-                               new Background(makeBg("halalshack.jpg")));
+    const mapPath = "./maps.json";
+    const dormMap = await TileMap.fromFile(mapPath, "BEDROOM");
+    const hallwayMap = await TileMap.fromFile(mapPath, "HALLWAY");
 
-    this.sceneManager.setScene("dorm");
+    this.sceneManager.addScene("dorm", new Scene(makeBg("dorm.png"), [], dormMap));
+    this.sceneManager.addScene("daka", new Scene(makeBg("daka.jpg")));
+    this.sceneManager.addScene("cc", new Scene(makeBg("cc.png")));
+    this.sceneManager.addScene("hallway",
+                               new Scene(makeBg("hallway.png"), [], hallwayMap));
+    this.sceneManager.addScene("classroom",
+                               new Scene(makeBg("classroom.png")));
+    this.sceneManager.addScene("bathroom",
+                               new Scene(makeBg("bathroom.jpg")));
+    this.sceneManager.addScene("halalshack",
+                               new Scene(makeBg("halalshack.jpg")));
   }
 
   openStartingScene() {
@@ -690,7 +699,7 @@ class Game {
 
   setLocation(name) {
     this.currentLocation = name;
-    this.sceneManager.setScene(name);
+    this.sceneManager.setScene(name, this.player);
   }
 
   formatTime(hour24) {
@@ -702,7 +711,7 @@ class Game {
   update() {
     // Input/UI should call performAction; update is mostly for animations
     this.response.update();
-    this.player.update();
+    this.player.update(this);
 
     // Reset class attendance when day changes
     if (this.time.day !== this.lastDayChecked) {
@@ -756,8 +765,18 @@ class Game {
       return; // Skip normal rendering during sleep
     }
 
-    this.sceneManager.render(ctx);
-    this.player.render(ctx);
+    let offsetX = 0;
+    let offsetY = 0;
+    const map = this.sceneManager.getCurrentMap();
+    if (map) {
+        const mapWidth = map.width * map.tileSize;
+        const mapHeight = map.height * map.tileSize;
+        offsetX = (this.width - mapWidth) / 2;
+        offsetY = (this.height - mapHeight) / 2;
+    }
+
+    this.sceneManager.render(ctx, offsetX, offsetY);
+    this.player.render(ctx, offsetX, offsetY, this);
 
     // Fade out menu and scene if response is active
     if (this.response.isActive()) {

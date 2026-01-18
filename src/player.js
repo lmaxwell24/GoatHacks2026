@@ -117,7 +117,7 @@ class Player {
 
   advanceDay() { this.grades.forEach(g => g.advanceDay()); }
 
-  update() {
+  update(game) {
     // Update all stat animations
     this.food.update();
     this.water.update();
@@ -129,8 +129,34 @@ class Player {
 
     const now = new Date().getTime();
     if (now - this.lastMoveTime > 50) {
-      // Update position based on velocity
-      this.position = this.position.add(this.velocity);
+      const currentMap = game.sceneManager.getCurrentMap();
+      let nextPos = this.position.add(this.velocity);
+
+      if (currentMap) {
+        // Player's collision bounding box (relative to player's top-left corner)
+        const BBOX = { x: 16, y: 48, width: 32, height: 16 };
+        
+        // Store current position before moving
+        const currentPos = new Vector2(this.position.x, this.position.y);
+
+        // Check X-axis collision
+        this.position.x = nextPos.x;
+        let worldBBoxX = { x: this.position.x + BBOX.x, y: currentPos.y + BBOX.y, width: BBOX.width, height: BBOX.height };
+        if (currentMap.isWorldRectCollidable(worldBBoxX)) {
+            this.position.x = currentPos.x; // Revert if collision
+        }
+
+        // Check Y-axis collision
+        this.position.y = nextPos.y;
+        let worldBBoxY = { x: this.position.x + BBOX.x, y: this.position.y + BBOX.y, width: BBOX.width, height: BBOX.height };
+        if (currentMap.isWorldRectCollidable(worldBBoxY)) {
+            this.position.y = currentPos.y; // Revert if collision
+        }
+
+      } else {
+        // No map, no collision
+        this.position = nextPos;
+      }
       this.lastMoveTime = now;
     }
   }
@@ -254,7 +280,7 @@ class Player {
 
   askForTime() { this.sanity.changeValue(-5); }
 
-  render(ctx) {
+  render(ctx, offsetX = 0, offsetY = 0, game = null) {
     let y = 10;
     this.food.drawBar(ctx, 10, y, "Food", this.barImages.food);
     y += 50;
@@ -276,6 +302,9 @@ class Player {
       y += 50;
     });
 
+    const drawX = this.position.x + offsetX;
+    const drawY = this.position.y + offsetY;
+
     // render image if walking
     if (this.isWalking) {
       const now = new Date().getTime();
@@ -284,10 +313,16 @@ class Player {
             (this.walkingFrame + 1) % this.walkingAnimation.length;
         this.lastWalkFrameTime = now;
       }
-      ctx.drawImage(this.walkingAnimation[this.walkingFrame], this.position.x,
-                    this.position.y, 64, 64);
+      ctx.drawImage(this.walkingAnimation[this.walkingFrame], drawX,
+                    drawY, 64, 64);
     } else {
-      ctx.drawImage(this.idleImage, this.position.x, this.position.y, 64, 64);
+      ctx.drawImage(this.idleImage, drawX, drawY, 64, 64);
+    }
+
+    if (game && game.debug) {
+        const BBOX = { x: 16, y: 48, width: 32, height: 16 };
+        ctx.fillStyle = "rgba(255, 0, 0, 0.5)";
+        ctx.fillRect(drawX + BBOX.x, drawY + BBOX.y, BBOX.width, BBOX.height);
     }
   }
 }
