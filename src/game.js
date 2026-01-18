@@ -54,62 +54,16 @@ class Game {
       // Only allow menu input if no response is currently displaying
       if (e.key === "f") {
         canvas.requestFullscreen();
-      } else if (e.key === "Space" || e.key === " ") {
-
-        const sleepIndex = this.time.hour >= 22 ? 2 : -1;
-        const options = [
-          "Talk to roommate", "Go into hallway", "Sleep", "Study", "Doomscroll",
-          "Drink"
-        ];
-        this.openMenu(options, (choice) => {
-          switch (choice) {
-          case "Talk to roommate":
-            this.performAction({type : "interact_roommate"});
-            break;
-
-          case "Go into hallway":
-            this.openHallwayScene();
-            return; // Don't reopen dorm scene yet
-            break;
-
-          case "Sleep":
-            this.performAction({type : "sleep", hours : 8});
-            break;
-
-          case "Study":
-            this.performAction({type : "study"});
-            break;
-
-          case "Doomscroll":
-            this.performAction({type : "doomscroll"});
-            break;
-
-          case "Drink":
-            this.openDrinkMenu();
-            return; // Don't reopen dorm scene yet
-            break;
-          }
-
-          // After action finishes, reopen the starting menu (unless sleeping)
-          if (choice !== "Sleep") {
-            this.openStartingScene();
-          }
-        }, sleepIndex);
-      }
-      this.activeKeys.add(e.key);
-      if (!this.response.isDisplaying) {
+      } else if (e.key === " ") {
+        this.openInteractionMenu();
+      } else if (this.response.isDisplaying) {
+          this.response.handleKeyPress(e.key);
+      } else if (this.menu.active) {
         this.menu.handleKey(e);
-      } else if (!this.menu.active) {
-        // we are able to move
-        this.player.handleKey(new Set());
-      }else{
-      this.player.handleKey(this.activeKeys);
-
+      } else { // Allow player movement if no other UI is active
+        this.activeKeys.add(e.key);
+        this.player.handleKey(this.activeKeys);
       }
-
-      // Always allow response input if response is active
-      this.response.handleKeyPress(e.key);
-
     });
     window.addEventListener("keyup", (e) => {
       this.activeKeys.delete(e.key);
@@ -151,6 +105,41 @@ class Game {
     this.setLocation("dorm");
 
     // Emphasize sleep after 10 PM (22:00)
+    const sleepIndex = this.time.hour >= 22 ? 2 : -1;
+
+    this.openMenu([
+      "Talk to roommate", "Go into hallway", "Sleep", "Study", "Doomscroll",
+      "Drink"
+    ], (choice) => {
+      switch (choice) {
+      case "Talk to roommate":
+        this.performAction({type : "interact_roommate"});
+        break;
+
+      case "Go into hallway":
+        this.setLocation("hallway"); // Go to hallway, player can move there
+        break;
+
+      case "Sleep":
+        this.performAction({type : "sleep", hours : 8});
+        return; // Sleeping handles its own scene
+        break;
+
+      case "Study":
+        this.performAction({type : "study"});
+        break;
+
+      case "Doomscroll":
+        this.performAction({type : "doomscroll"});
+        break;
+
+      case "Drink":
+        this.openDrinkMenu(); // Opens another menu, so don't return to movement yet
+        return;
+        break;
+      }
+      this.returnToMovement(); // After action, return control to player
+    }, sleepIndex);
   }
 
   openHallwayScene() {
@@ -173,27 +162,31 @@ class Game {
             const bathroomMsg = bathroomDialogues[Math.floor(
                 Math.random() * bathroomDialogues.length)];
             this.response.showDialogue("You", bathroomMsg, true);
-            this.response.onDismiss = () => { this.openHallwayScene(); };
+            this.response.onDismiss = () => { this.returnToMovement(); };
             this.performAction({type : "use_bathroom"});
             this.time.advance(0.5);
             break;
 
           case "Go back to dorm":
-            this.openStartingScene();
+            this.setLocation("dorm"); // Go to dorm, player can move there
             break;
 
           case "Go to class":
-            this.openClassMenu();
+            this.openClassMenu(); // Opens another menu, so don't return to movement yet
+            return;
             break;
 
           case "Eat":
-            this.openEatMenu();
+            this.openEatMenu(); // Opens another menu, so don't return to movement yet
+            return;
             break;
 
           case "Talk to someone":
-            this.handleHallwayFlirt();
+            this.handleHallwayFlirt(); // Opens a response, which will call returnToMovement() on dismiss
+            return;
             break;
           }
+          this.returnToMovement(); // After action, return control to player
         });
   }
 
@@ -206,7 +199,7 @@ class Game {
             if (this.player.getRemainingSwipes() <= 0) {
               this.response.showSystemResponse(
                   "You don't have any meal swipes left!");
-              this.response.onDismiss = () => { this.openEatMenu(); };
+              this.response.onDismiss = () => { this.returnToMovement(); };
               return;
             }
 
@@ -219,7 +212,7 @@ class Game {
             const dakaMsg =
                 dakaMessages[Math.floor(Math.random() * dakaMessages.length)];
             this.response.showDialogue("Your Stomach", dakaMsg, true);
-            this.response.onDismiss = () => { this.openHallwayScene(); };
+            this.response.onDismiss = () => { this.returnToMovement(); };
             this.time.advance(1);
             break;
 
@@ -227,7 +220,7 @@ class Game {
             if (this.player.getRemainingSwipes() <= 0) {
               this.response.showSystemResponse(
                   "You don't have any meal swipes left!");
-              this.response.onDismiss = () => { this.openEatMenu(); };
+              this.response.onDismiss = () => { this.returnToMovement(); };
               return;
             }
 
@@ -241,7 +234,7 @@ class Game {
             const ccMsg =
                 ccMessages[Math.floor(Math.random() * ccMessages.length)];
             this.response.showDialogue("You", ccMsg, true);
-            this.response.onDismiss = () => { this.openHallwayScene(); };
+            this.response.onDismiss = () => { this.returnToMovement(); };
             this.time.advance(1);
             break;
 
@@ -259,13 +252,14 @@ class Game {
             const message = disappointedMessages[Math.floor(
                 Math.random() * disappointedMessages.length)];
             this.response.showDialogue("You", message, true);
-            this.response.onDismiss = () => { this.openHallwayScene(); };
+            this.response.onDismiss = () => { this.returnToMovement(); };
             break;
 
           case "Go back":
-            this.openHallwayScene();
+            this.setLocation("hallway"); // Go back to hallway, player can move there
             break;
           }
+          this.returnToMovement(); // After action, return control to player
         });
   }
 
@@ -277,14 +271,14 @@ class Game {
           case "Water":
             this.player.drinkWater();
             this.response.showDialogue("You", "Ah, refreshing.", true);
-            this.response.onDismiss = () => { this.openHallwayScene(); };
+            this.response.onDismiss = () => { this.returnToMovement(); };
             this.time.advance(0.5);
             break;
 
           case "Soda":
             this.player.drinkSoda();
             this.response.showDialogue("You", "Classic sugar rush.", true);
-            this.response.onDismiss = () => { this.openHallwayScene(); };
+            this.response.onDismiss = () => { this.returnToMovement(); };
             this.time.advance(0.5);
             break;
 
@@ -293,7 +287,7 @@ class Game {
             this.response.showConversation("You", "Just one more Monster...",
                                            "Monster", "There is no escape.",
                                            true);
-            this.response.onDismiss = () => { this.openHallwayScene(); };
+            this.response.onDismiss = () => { this.returnToMovement(); };
             this.time.advance(0.5);
             break;
 
@@ -302,14 +296,15 @@ class Game {
             this.player.water.changeValue(5);
             this.response.showDialogue("You", "The best part of waking up.",
                                        true);
-            this.response.onDismiss = () => { this.openHallwayScene(); };
+            this.response.onDismiss = () => { this.returnToMovement(); };
             this.time.advance(0.5);
             break;
 
           case "Go back":
-            this.openStartingScene();
+            this.setLocation("dorm"); // Go back to dorm, player can move there
             break;
           }
+          this.returnToMovement(); // After action, return control to player
         });
   }
 
@@ -336,14 +331,15 @@ class Game {
 
     this.openMenu(options, (choice) => {
       if (choice === "Talk to someone") {
-        this.handleClassFlirt();
+        this.handleClassFlirt(); // Opens a response, which will call returnToMovement() on dismiss
         return;
       }
 
       const classIndex = classNames.findIndex(name => choice.includes(name));
 
       if (classIndex === -1 || choice === "Go back") {
-        this.openHallwayScene();
+        this.setLocation("hallway"); // Navigates to another scene, player can move there
+        this.returnToMovement();
         return;
       }
 
@@ -355,6 +351,7 @@ class Game {
       if (attendedToday >= maxAttendance) {
         this.response.showSystemResponse(
             "You can't attend this class right now.");
+        this.response.onDismiss = () => { this.returnToMovement(); }; // Return to movement after message
         return;
       }
 
@@ -362,6 +359,7 @@ class Game {
       this.classAttendanceToday[classIndex]++;
       this.handleClassAttendance(classNames[classIndex], profNames[classIndex],
                                  classIndex);
+      // handleClassAttendance itself will show a response and call returnToMovement()
     });
   }
 
@@ -382,7 +380,7 @@ class Game {
           rudeComments[Math.floor(Math.random() * rudeComments.length)];
       this.response.showConversation("Classmate", comment, "You",
                                      "Oh... right. My bad.", true);
-      this.response.onDismiss = () => { this.openHallwayScene(); };
+      this.response.onDismiss = () => { this.returnToMovement(); };
       this.time.advance(0.5); // 30 minutes
       return;
     }
@@ -402,7 +400,7 @@ class Game {
         professorMessages[Math.floor(Math.random() * professorMessages.length)];
     this.response.showConversation("You", "Hi Professor", professorName,
                                    message, true);
-    this.response.onDismiss = () => { this.openHallwayScene(); };
+    this.response.onDismiss = () => { this.returnToMovement(); };
   }
 
   handleHallwayFlirt() {
@@ -548,7 +546,7 @@ class Game {
                                      true);
     }
 
-    this.response.onDismiss = () => { this.openHallwayScene(); };
+    this.response.onDismiss = () => { this.returnToMovement(); };
   }
 
   handleClassFlirt() {
@@ -696,7 +694,7 @@ class Game {
                                      herResponse, true);
     }
 
-    this.response.onDismiss = () => { this.openClassMenu(); };
+    this.response.onDismiss = () => { this.returnToMovement(); };
   }
 
   setLocation(name) {
@@ -1007,6 +1005,46 @@ class Game {
   }
 
   evaluateFinals() { this.checkEndings(true); }
+
+  openInteractionMenu() {
+      if (this.menu.active || this.response.isDisplaying) {
+          return; 
+      }
+
+      switch (this.currentLocation) {
+          case "dorm":
+              this.openStartingScene(); 
+              break;
+          case "hallway":
+              this.openHallwayScene(); 
+              break;
+          case "daka":
+          case "cc":
+          case "halalshack":
+              this.openEatMenu(); 
+              break;
+          case "classroom":
+              this.openClassMenu(); 
+              break;
+          case "bathroom":
+              this.openMenu(["Leave"], (choice) => {
+                  if (choice === "Leave") {
+                      this.setLocation("hallway");
+                  }
+              });
+              break;
+          default:
+              this.response.showSystemResponse("Nothing to interact with here.");
+              break;
+      }
+  }
+
+  returnToMovement() {
+    this.menu.close(); // Assuming menu has a close method
+    this.response.dismiss(); // Correctly calls the dismiss method
+    // Player movement is re-enabled automatically by the keydown listener
+    // as it checks this.menu.active and this.response.isDisplaying
+  }
 
   checkEndings(force = false) {
     if (!force && this.time.week < 7)
