@@ -76,6 +76,7 @@ class Player {
 
     this.position = new Vector2(0, 0);
     this.velocity = new Vector2(0, 0);
+    this.BBOX = { x: 16, y: 16, width: 32, height: 32 };
 
     this.lastMoveTime = new Date().getTime();
   }
@@ -134,21 +135,20 @@ class Player {
 
       if (currentMap) {
         // Player's collision bounding box (relative to player's top-left corner)
-        const BBOX = { x: 16, y: 48, width: 32, height: 16 };
         
         // Store current position before moving
         const currentPos = new Vector2(this.position.x, this.position.y);
 
         // Check X-axis collision
         this.position.x = nextPos.x;
-        let worldBBoxX = { x: this.position.x + BBOX.x, y: currentPos.y + BBOX.y, width: BBOX.width, height: BBOX.height };
+        let worldBBoxX = { x: this.position.x + this.BBOX.x, y: currentPos.y + this.BBOX.y, width: this.BBOX.width, height: this.BBOX.height };
         if (currentMap.isWorldRectCollidable(worldBBoxX)) {
             this.position.x = currentPos.x; // Revert if collision
         }
 
         // Check Y-axis collision
         this.position.y = nextPos.y;
-        let worldBBoxY = { x: this.position.x + BBOX.x, y: this.position.y + BBOX.y, width: BBOX.width, height: BBOX.height };
+        let worldBBoxY = { x: this.position.x + this.BBOX.x, y: this.position.y + this.BBOX.y, width: this.BBOX.width, height: this.BBOX.height };
         if (currentMap.isWorldRectCollidable(worldBBoxY)) {
             this.position.y = currentPos.y; // Revert if collision
         }
@@ -319,11 +319,7 @@ class Player {
       ctx.drawImage(this.idleImage, drawX, drawY, 64, 64);
     }
 
-    if (game && game.debug) {
-        const BBOX = { x: 16, y: 48, width: 32, height: 16 };
-        ctx.fillStyle = "rgba(255, 0, 0, 0.5)";
-        ctx.fillRect(drawX + BBOX.x, drawY + BBOX.y, BBOX.width, BBOX.height);
-    }
+
   }
 }
 

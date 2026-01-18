@@ -52,19 +52,63 @@ class Game {
 
     window.addEventListener("keydown", (e) => {
       // Only allow menu input if no response is currently displaying
-      if(e.key === "f"){
+      if (e.key === "f") {
         canvas.requestFullscreen();
+      } else if (e.key === "Space" || e.key === " ") {
+
+        const sleepIndex = this.time.hour >= 22 ? 2 : -1;
+        const options = [
+          "Talk to roommate", "Go into hallway", "Sleep", "Study", "Doomscroll",
+          "Drink"
+        ];
+        this.openMenu(options, (choice) => {
+          switch (choice) {
+          case "Talk to roommate":
+            this.performAction({type : "interact_roommate"});
+            break;
+
+          case "Go into hallway":
+            this.openHallwayScene();
+            return; // Don't reopen dorm scene yet
+            break;
+
+          case "Sleep":
+            this.performAction({type : "sleep", hours : 8});
+            break;
+
+          case "Study":
+            this.performAction({type : "study"});
+            break;
+
+          case "Doomscroll":
+            this.performAction({type : "doomscroll"});
+            break;
+
+          case "Drink":
+            this.openDrinkMenu();
+            return; // Don't reopen dorm scene yet
+            break;
+          }
+
+          // After action finishes, reopen the starting menu (unless sleeping)
+          if (choice !== "Sleep") {
+            this.openStartingScene();
+          }
+        }, sleepIndex);
       }
       this.activeKeys.add(e.key);
       if (!this.response.isDisplaying) {
         this.menu.handleKey(e);
-      } else if (!this.menu.active){
+      } else if (!this.menu.active) {
         // we are able to move
+        this.player.handleKey(new Set());
+      }else{
+      this.player.handleKey(this.activeKeys);
+
       }
+
       // Always allow response input if response is active
       this.response.handleKeyPress(e.key);
-
-      this.player.handleKey(this.activeKeys);
 
     });
     window.addEventListener("keyup", (e) => {
@@ -91,15 +135,14 @@ class Game {
     const dormMap = await TileMap.fromFile(mapPath, "BEDROOM");
     const hallwayMap = await TileMap.fromFile(mapPath, "HALLWAY");
 
-    this.sceneManager.addScene("dorm", new Scene(makeBg("dorm.png"), [], dormMap));
+    this.sceneManager.addScene("dorm",
+                               new Scene(makeBg("dorm.png"), [], dormMap));
     this.sceneManager.addScene("daka", new Scene(makeBg("daka.jpg")));
     this.sceneManager.addScene("cc", new Scene(makeBg("cc.png")));
-    this.sceneManager.addScene("hallway",
-                               new Scene(makeBg("hallway.png"), [], hallwayMap));
-    this.sceneManager.addScene("classroom",
-                               new Scene(makeBg("classroom.png")));
-    this.sceneManager.addScene("bathroom",
-                               new Scene(makeBg("bathroom.jpg")));
+    this.sceneManager.addScene(
+        "hallway", new Scene(makeBg("hallway.png"), [], hallwayMap));
+    this.sceneManager.addScene("classroom", new Scene(makeBg("classroom.png")));
+    this.sceneManager.addScene("bathroom", new Scene(makeBg("bathroom.jpg")));
     this.sceneManager.addScene("halalshack",
                                new Scene(makeBg("halalshack.jpg")));
   }
@@ -107,48 +150,7 @@ class Game {
   openStartingScene() {
     this.setLocation("dorm");
 
-    const options = [
-      "Talk to roommate", "Go into hallway", "Sleep", "Study", "Doomscroll",
-      "Drink"
-    ];
-
     // Emphasize sleep after 10 PM (22:00)
-    const sleepIndex = this.time.hour >= 22 ? 2 : -1;
-
-    // this.openMenu(options, (choice) => {
-    //   switch (choice) {
-    //   case "Talk to roommate":
-    //     this.performAction({type : "interact_roommate"});
-    //     break;
-
-    //   case "Go into hallway":
-    //     this.openHallwayScene();
-    //     return; // Don't reopen dorm scene yet
-    //     break;
-
-    //   case "Sleep":
-    //     this.performAction({type : "sleep", hours : 8});
-    //     break;
-
-    //   case "Study":
-    //     this.performAction({type : "study"});
-    //     break;
-
-    //   case "Doomscroll":
-    //     this.performAction({type : "doomscroll"});
-    //     break;
-
-    //   case "Drink":
-    //     this.openDrinkMenu();
-    //     return; // Don't reopen dorm scene yet
-    //     break;
-    //   }
-
-    //   // After action finishes, reopen the starting menu (unless sleeping)
-    //   if (choice !== "Sleep") {
-    //     this.openStartingScene();
-    //   }
-    // }, sleepIndex);
   }
 
   openHallwayScene() {
@@ -769,10 +771,10 @@ class Game {
     let offsetY = 0;
     const map = this.sceneManager.getCurrentMap();
     if (map) {
-        const mapWidth = map.width * map.tileSize;
-        const mapHeight = map.height * map.tileSize;
-        offsetX = (this.width - mapWidth) / 2;
-        offsetY = (this.height - mapHeight) / 2;
+      const mapWidth = map.width * map.tileSize;
+      const mapHeight = map.height * map.tileSize;
+      offsetX = (this.width - mapWidth) / 2;
+      offsetY = (this.height - mapHeight) / 2;
     }
 
     this.sceneManager.render(ctx, offsetX, offsetY);

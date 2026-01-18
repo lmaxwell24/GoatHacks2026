@@ -1,35 +1,10 @@
 import { Vector2 } from "./vector.js";
 
-const WALL_AUTOTILE_FILENAMES = {
-    // Mapping from bitmask to filename
-    1: 'wall_bottom.png', // N
-    2: 'wall_left.png',   // E
-    3: 'left_bottom_corner.png', // N+E
-    4: 'wall_top.png',    // S
-    // 5: missing (N+S)
-    6: 'left_top_corner.png', // E+S
-    // 7: missing (N+E+S)
-    8: 'wall_right.png',  // W
-    9: 'right_bottom_corner.png', // N+W
-    // 10: missing (E+W)
-    // 11: missing (N+E+W)
-    12: 'right_top_corner.png', // S+W
-    // 13: missing (N+S+W)
-    // 14: missing (E+S+W)
-    // 15: missing (all)
-};
-
-// Fallbacks for missing tiles
-const WALL_AUTOTILE_FALLBACKS = {
-    0: 4, // Isolated -> wall_top
-    5: 4, // N+S (vertical) -> wall_top
-    7: 6, // N+E+S -> left_top_corner
-    10: 2, // E+W (horizontal) -> wall_left
-    11: 3, // N+E+W -> left_bottom_corner
-    13: 9, // N+S+W -> right_bottom_corner
-    14: 6, // E+S+W -> left_top_corner
-    15: 6, // ALL -> left_top_corner
-}
+const AUTOTILE_ASSETS = [
+    'wall_bottom.png', 'wall_left.png', 'wall_right.png', 'wall_top.png',
+    'left_bottom_corner.png', 'left_top_corner.png',
+    'right_bottom_corner.png', 'right_top_corner.png'
+];
 
 class TileType {
     constructor(name, char, isCollidable, isAutoTile = false, filename = null) {
@@ -45,14 +20,15 @@ class TileType {
         this.loadImage();
     }
 
-    loadImage(imageDir = "/src/media/images/tiles") {
+    loadImage(imageDir = "media/images/tiles") {
         if (this.isAutoTile) {
             this.autotileImages = new Map();
             const wallDir = `${imageDir}/wall`;
-            for (const [mask, fname] of Object.entries(WALL_AUTOTILE_FILENAMES)) {
+            for (const fname of AUTOTILE_ASSETS) {
                 const img = new Image();
                 img.src = `${wallDir}/${fname}`;
-                this.autotileImages.set(parseInt(mask), img);
+                // Store by name without extension
+                this.autotileImages.set(fname.replace('.png', ''), img);
             }
         } else if (this.filename) {
             const img = new Image();
@@ -200,30 +176,59 @@ class TileMap {
     }
 
     renderAutoTile(ctx, x, y, type, dx, dy) {
-        const N = (y > 0 && this.tiles[y - 1][x].type === type) ? 1 : 0;
-        const S = (y < this.height - 1 && this.tiles[y + 1][x].type === type) ? 1 : 0;
-        const W = (x > 0 && this.tiles[y][x - 1].type === type) ? 1 : 0;
-        const E = (x < this.width - 1 && this.tiles[y][x + 1].type === type) ? 1 : 0;
-        let mask = (N << 0) | (E << 1) | (S << 2) | (W << 3);
+        const N = this.getTileAt(x, y - 1)?.type;
+        const S = this.getTileAt(x, y + 1)?.type;
+        const E = this.getTileAt(x + 1, y)?.type;
+        const W = this.getTileAt(x - 1, y)?.type;
 
-        let imageToDraw = type.autotileImages.get(mask);
+        const isWall = (t) => t?.isAutoTile; // Check if it's a wall type
+        const isFloor = (t) => t === TILE_TYPES.FLOOR;
 
-        if (!imageToDraw) {
-            const fallbackMask = WALL_AUTOTILE_FALLBACKS[mask];
-            imageToDraw = type.autotileImages.get(fallbackMask);
+        const wallN = isWall(N), wallS = isWall(S), wallE = isWall(E), wallW = isWall(W);
+        const floorN = isFloor(N), floorS = isFloor(S), floorE = isFloor(E), floorW = isFloor(W);
+        
+        let key = 'debug';
+
+        // Corners
+        if (wallS && wallE && !wallN && !wallW) key = 'left_top_corner';
+        else if (wallS && wallW && !wallN && !wallE) key = 'right_top_corner';
+        else if (wallN && wallE && !wallS && !wallW) key = 'left_bottom_corner';
+        else if (wallN && wallW && !wallS && !wallE) key = 'right_bottom_corner';
+        
+        // Straights
+        else if (wallN && wallS) { // Vertical
+            if(floorE) key = 'wall_top'; // Left edge of room
+            else if(floorW) key = 'wall_bottom'; // Right edge of room
+            else key = 'wall_top'; // Default interior
+        }
+        else if (wallE && wallW) { // Horizontal
+            if(floorS) key = 'wall_left'; // Top edge of room
+            else if(floorN) key = 'wall_right'; // Bottom edge of room
+            else key = 'wall_left'; // Default interior
         }
 
-        if (imageToDraw && imageToDraw.complete) {
+        // Caps
+        else if (wallN) key = 'wall_bottom';
+        else if (wallS) key = 'wall_top';
+        else if (wallE) key = 'wall_left';
+        else if (wallW) key = 'wall_right';
+        
+        // Isolated
+        else key = 'wall_top'; // Fallback for isolated wall block
+
+        let imageToDraw = type.autotileImages.get(key);
+
+        if (imageToDraw && imageToDraw.complete && imageToDraw.naturalWidth !== 0) {
             ctx.drawImage(imageToDraw, dx, dy, this.tileSize, this.tileSize);
         } else {
-            // Fallback for autotile if images are not loaded yet
+            // Fallback for autotile if images are not loaded yet or missing
             ctx.fillStyle = "#444";
             ctx.fillRect(dx, dy, this.tileSize, this.tileSize);
             ctx.fillStyle = "white";
-            ctx.font = "10px Arial";
+            ctx.font = "8px Arial";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            ctx.fillText(mask, dx + this.tileSize / 2, dy + this.tileSize / 2);
+            ctx.fillText(key, dx + this.tileSize / 2, dy + this.tileSize / 2);
         }
     }
 
