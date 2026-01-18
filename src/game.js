@@ -48,6 +48,9 @@ class Game {
 
     window.addEventListener("keydown", (e) => {
       // Only allow menu input if no response is currently displaying
+      if(e.key === "f"){
+        canvas.requestFullscreen();
+      }
 
 
       if (!this.response.isDisplaying) {
