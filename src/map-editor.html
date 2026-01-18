@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Map Editor</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+            background-color: #f9f9f9;
+        }
+        #map-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        #map-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        #map-list li {
+            padding: 10px;
+            cursor: pointer;
+        }
+        #map-list li:hover {
+            background-color: #eee;
+        }
+        #map-list li.selected {
+            background-color: #ddd;
+        }
+        #editor {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        #map-name {
+            width: 100%;
+        }
+        #map-textarea {
+            width: 400px;
+            height: 300px;
+            font-family: monospace;
+        }
+        #canvas-container {
+            border: 1px solid black;
+        }
+    </style>
+</head>
+<body>
+    <div id="map-selector">
+        <h2>Maps</h2>
+        <ul id="map-list"></ul>
+        <button id="new-map">New Map</button>
+    </div>
+    <div id="editor">
+        <h2>Editor</h2>
+        <input type="text" id="map-name" placeholder="Map Name">
+        <textarea id="map-textarea"></textarea>
+        <button id="save-map">Save Map</button>
+    </div>
+    <div id="renderer">
+        <h2>Preview</h2>
+        <div id="canvas-container">
+            <canvas id="map-canvas"></canvas>
+        </div>
+    </div>
+    <script type="module" src="map-editor.js"></script>
+</body>
+</html>
