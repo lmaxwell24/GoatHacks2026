@@ -46,13 +46,14 @@ class Game {
 
     this.loadScenes();
 
+    this.activeKeys = new Set();
+
     window.addEventListener("keydown", (e) => {
       // Only allow menu input if no response is currently displaying
       if(e.key === "f"){
         canvas.requestFullscreen();
       }
-
-
+      this.activeKeys.add(e.key);
       if (!this.response.isDisplaying) {
         this.menu.handleKey(e);
       } else if (!this.menu.active){
@@ -61,11 +62,12 @@ class Game {
       // Always allow response input if response is active
       this.response.handleKeyPress(e.key);
 
-      this.player.handleKey(e, true);
+      this.player.handleKey(this.activeKeys);
 
     });
     window.addEventListener("keyup", (e) => {
-      this.player.handleKey(e, false);
+      this.activeKeys.delete(e.key);
+      this.player.handleKey(this.activeKeys);
     });
   }
 

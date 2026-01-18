@@ -80,28 +80,20 @@ class Player {
     this.lastMoveTime = new Date().getTime();
   }
 
-  handleKey(e, isPressed) {
+  handleKey(activeKeys) {
     const speed = 2 * 4;
-    if (isPressed) {
-      if (e.key === "ArrowUp") {
-        this.velocity.y -= speed;
-      } else if (e.key === "ArrowDown") {
-        this.velocity.y += speed;
-      } else if (e.key === "ArrowLeft") {
-        this.velocity.x -= speed;
-      } else if (e.key === "ArrowRight") {
-        this.velocity.x += speed;
-      }
-    } else {
-      if (e.key === "ArrowUp") {
-        this.velocity.y += speed;
-      } else if (e.key === "ArrowDown") {
-        this.velocity.y -= speed;
-      } else if (e.key === "ArrowLeft") {
-        this.velocity.x += speed;
-      } else if (e.key === "ArrowRight") {
-        this.velocity.x -= speed;
-      }
+    this.velocity = new Vector2(0, 0);
+    if (activeKeys.has("ArrowUp")) {
+      this.velocity.y -= speed;
+    }
+    if (activeKeys.has("ArrowDown")) {
+      this.velocity.y += speed;
+    }
+    if (activeKeys.has("ArrowLeft")) {
+      this.velocity.x -= speed;
+    }
+    if (activeKeys.has("ArrowRight")) {
+      this.velocity.x += speed;
     }
     this.velocity.x = Math.min(speed, Math.max(-speed, this.velocity.x));
     this.velocity.y = Math.min(speed, Math.max(-speed, this.velocity.y));
