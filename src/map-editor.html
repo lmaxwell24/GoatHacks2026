@@ -3,73 +3,163 @@
 <head>
     <title>Map Editor</title>
     <style>
-        body {
-            font-family: sans-serif;
-            display: flex;
-            flex-direction: row;
-            gap: 20px;
-            background-color: #f9f9f9;
+        :root {
+            --bg-color: #282c34;
+            --secondary-bg-color: #3c4049;
+            --border-color: #444851;
+            --text-color: #abb2bf;
+            --header-color: #ffffff;
+            --accent-color: #61afef;
+            --selected-color: #4a5160;
         }
-        #map-selector {
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: grid;
+            grid-template-columns: 200px 1fr 200px;
+            gap: 20px;
+            padding: 20px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            height: 100vh;
+            margin: 0;
+            box-sizing: border-box;
+        }
+
+        h2 {
+            color: var(--header-color);
+            margin-top: 0;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        .panel {
+            background-color: var(--secondary-bg-color);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 15px;
         }
+
+        #sidebar-left, #sidebar-right {
+            overflow-y: auto;
+        }
+
         #map-list {
             list-style: none;
             padding: 0;
             margin: 0;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            max-height: 300px;
-            overflow-y: auto;
         }
+
         #map-list li {
             padding: 10px;
             cursor: pointer;
+            border-radius: 5px;
+            margin-bottom: 5px;
         }
+
         #map-list li:hover {
-            background-color: #eee;
+            background-color: var(--selected-color);
         }
+
         #map-list li.selected {
-            background-color: #ddd;
+            background-color: var(--accent-color);
+            color: var(--bg-color);
+            font-weight: bold;
         }
-        #editor {
-            display: flex;
-            flex-direction: column;
+
+        button {
+            background-color: var(--accent-color);
+            color: var(--bg-color);
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #7cc0f5;
+        }
+
+        input[type="text"], textarea {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            padding: 10px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        #map-textarea {
+            font-family: 'Courier New', Courier, monospace;
+            resize: vertical;
+            min-height: 150px;
+        }
+
+        #canvas-container {
+            border: 2px dashed var(--border-color);
+            border-radius: 5px;
+            padding: 5px;
+            align-self: center;
+            background-color: #000;
+        }
+        
+        #map-canvas {
+            cursor: crosshair;
+        }
+        
+        #tile-palette {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
             gap: 10px;
         }
-        #map-name {
-            width: 100%;
+
+        .palette-tile {
+            width: 40px;
+            height: 40px;
+            border: 2px solid var(--border-color);
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 10px;
+            background-size: cover;
         }
-        #map-textarea {
-            width: 400px;
-            height: 300px;
-            font-family: monospace;
+
+        .palette-tile.selected {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 10px var(--accent-color);
         }
-        #canvas-container {
-            border: 1px solid black;
-        }
+
     </style>
 </head>
 <body>
-    <div id="map-selector">
+    <div id="sidebar-left" class="panel">
         <h2>Maps</h2>
         <ul id="map-list"></ul>
         <button id="new-map">New Map</button>
+        <button id="save-map">Save maps.json</button>
     </div>
-    <div id="editor">
-        <h2>Editor</h2>
+    
+    <div id="main-content" class="panel">
         <input type="text" id="map-name" placeholder="Map Name">
-        <textarea id="map-textarea"></textarea>
-        <button id="save-map">Save Map</button>
-    </div>
-    <div id="renderer">
-        <h2>Preview</h2>
         <div id="canvas-container">
             <canvas id="map-canvas"></canvas>
         </div>
+        <textarea id="map-textarea" placeholder="Or edit map text here..."></textarea>
     </div>
+
+    <div id="sidebar-right" class="panel">
+        <h2>Tile Palette</h2>
+        <div id="tile-palette"></div>
+    </div>
+
     <script type="module" src="map-editor.js"></script>
 </body>
 </html>

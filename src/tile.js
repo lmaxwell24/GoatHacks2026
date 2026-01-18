@@ -1,50 +1,80 @@
 import { Vector2 } from "./vector.js";
 
-// Default filenames for tile images (assumed to exist in imageDir)
-const DEFAULT_TILE_FILENAMES = {
-    floor: "floor.png",
-    wall: "wall_atlas.png", // Expects a 4x4 atlas for walls
-    exit: "exit.png",
-    bed1: "bed1.png",
-    bed2: "bed2.png",
-    spawn: "spawn.png",
-    air: null,
+const WALL_AUTOTILE_FILENAMES = {
+    // Mapping from bitmask to filename
+    1: 'wall_bottom.png', // N
+    2: 'wall_left.png',   // E
+    3: 'left_bottom_corner.png', // N+E
+    4: 'wall_top.png',    // S
+    // 5: missing (N+S)
+    6: 'left_top_corner.png', // E+S
+    // 7: missing (N+E+S)
+    8: 'wall_right.png',  // W
+    9: 'right_bottom_corner.png', // N+W
+    // 10: missing (E+W)
+    // 11: missing (N+E+W)
+    12: 'right_top_corner.png', // S+W
+    // 13: missing (N+S+W)
+    // 14: missing (E+S+W)
+    // 15: missing (all)
 };
 
+// Fallbacks for missing tiles
+const WALL_AUTOTILE_FALLBACKS = {
+    0: 4, // Isolated -> wall_top
+    5: 4, // N+S (vertical) -> wall_top
+    7: 6, // N+E+S -> left_top_corner
+    10: 2, // E+W (horizontal) -> wall_left
+    11: 3, // N+E+W -> left_bottom_corner
+    13: 9, // N+S+W -> right_bottom_corner
+    14: 6, // E+S+W -> left_top_corner
+    15: 6, // ALL -> left_top_corner
+}
+
 class TileType {
-    constructor(name, char, isCollidable, filename, isAutoTile = false) {
+    constructor(name, char, isCollidable, isAutoTile = false, filename = null) {
         this.name = name;
         this.char = char;
         this.isCollidable = isCollidable;
-        this.filename = filename;
         this.isAutoTile = isAutoTile;
-        this.image = null;
+        this.filename = filename; // For non-autotiles
+        
+        this.image = null; // For non-autotiles
+        this.autotileImages = null; // For autotiles
+
+        this.loadImage();
     }
 
     loadImage(imageDir = "src/media/images/tiles") {
-        if (!this.filename) {
-            return;
+        if (this.isAutoTile) {
+            this.autotileImages = new Map();
+            const wallDir = `${imageDir}/wall`;
+            for (const [mask, fname] of Object.entries(WALL_AUTOTILE_FILENAMES)) {
+                const img = new Image();
+                img.src = `${wallDir}/${fname}`;
+                this.autotileImages.set(parseInt(mask), img);
+            }
+        } else if (this.filename) {
+            const img = new Image();
+            img.src = `${imageDir}/${this.filename}`;
+            this.image = img;
         }
-        const img = new Image();
-        img.src = `${imageDir}/${this.filename}`;
-        this.image = img;
     }
 }
 
 const TILE_TYPES = {
-    FLOOR: new TileType("floor", "f", false, DEFAULT_TILE_FILENAMES.floor),
-    WALL: new TileType("wall", "w", true, DEFAULT_TILE_FILENAMES.wall, true),
-    EXITDOOR: new TileType("exit", "e", false, DEFAULT_TILE_FILENAMES.exit),
-    BED1: new TileType("bed1", "b", true, DEFAULT_TILE_FILENAMES.bed1),
-    BED2: new TileType("bed2", "d", true, DEFAULT_TILE_FILENAMES.bed2),
-    SPAWN: new TileType("spawn", "s", false, DEFAULT_TILE_FILENAMES.spawn),
-    AIR: new TileType("air", "a", false, DEFAULT_TILE_FILENAMES.air),
+    FLOOR: new TileType("floor", "f", false, false, "carpet.png"),
+    WALL: new TileType("wall", "w", true, true),
+    EXITDOOR: new TileType("exit", "e", false, false, "door/door_top.png"),
+    BED1: new TileType("bed1", "b", true, false, null),
+    BED2: new TileType("bed2", "d", true, false, null),
+    SPAWN: new TileType("spawn", "s", false, false, null),
+    AIR: new TileType("air", "a", false, false, null),
 };
 
 const TILE_TYPE_MAP = {};
 for (const type of Object.values(TILE_TYPES)) {
     TILE_TYPE_MAP[type.char] = type;
-    type.loadImage();
 }
 
 const tileFromChar = (char) => {
@@ -115,7 +145,7 @@ class TileMap {
     }
 
     renderStandardTile(ctx, type, dx, dy) {
-        if (type.image && type.image.complete) {
+        if (type.image && type.image.complete && type.image.naturalWidth !== 0) {
             ctx.drawImage(type.image, dx, dy, this.tileSize, this.tileSize);
         } else {
             // Fallback rendering
@@ -130,8 +160,11 @@ class TileMap {
                 case TILE_TYPES.AIR:
                     ctx.clearRect(dx, dy, this.tileSize, this.tileSize);
                     return;
-                default: // FLOOR
+                case TILE_TYPES.FLOOR:
                     ctx.fillStyle = "#ccc";
+                    break;
+                default:
+                    ctx.fillStyle = "#ff00ff"; // Should not happen
                     break;
             }
             ctx.fillRect(dx, dy, this.tileSize, this.tileSize);
@@ -143,18 +176,23 @@ class TileMap {
         const S = (y < this.height - 1 && this.tiles[y + 1][x].type === type) ? 1 : 0;
         const W = (x > 0 && this.tiles[y][x - 1].type === type) ? 1 : 0;
         const E = (x < this.width - 1 && this.tiles[y][x + 1].type === type) ? 1 : 0;
-        const mask = (N << 0) | (E << 1) | (S << 2) | (W << 3);
+        let mask = (N << 0) | (E << 1) | (S << 2) | (W << 3);
 
-        if (type.image && type.image.complete) {
-            const sx = (mask % 4) * this.tileSize;
-            const sy = Math.floor(mask / 4) * this.tileSize;
-            ctx.drawImage(type.image, sx, sy, this.tileSize, this.tileSize, dx, dy, this.tileSize, this.tileSize);
+        let imageToDraw = type.autotileImages.get(mask);
+
+        if (!imageToDraw) {
+            const fallbackMask = WALL_AUTOTILE_FALLBACKS[mask];
+            imageToDraw = type.autotileImages.get(fallbackMask);
+        }
+
+        if (imageToDraw && imageToDraw.complete && imageToDraw.naturalWidth !== 0) {
+            ctx.drawImage(imageToDraw, dx, dy, this.tileSize, this.tileSize);
         } else {
-            // Fallback for autotile
+            // Fallback for autotile if images are not loaded yet
             ctx.fillStyle = "#444";
             ctx.fillRect(dx, dy, this.tileSize, this.tileSize);
             ctx.fillStyle = "white";
-            ctx.font = "12px Arial";
+            ctx.font = "10px Arial";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillText(mask, dx + this.tileSize / 2, dy + this.tileSize / 2);
