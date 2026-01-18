@@ -61,6 +61,11 @@ class Game {
       // Always allow response input if response is active
       this.response.handleKeyPress(e.key);
 
+      this.player.handleKey(e, true);
+
+    });
+    window.addEventListener("keyup", (e) => {
+      this.player.handleKey(e, false);
     });
   }
 

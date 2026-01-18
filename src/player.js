@@ -54,7 +54,59 @@ class Player {
     this.hoursSinceSleep = 0;
     this.sick = false;
 
+    // Walking animation
+    this.walkingAnimation = [
+      new Image(),
+      new Image(),
+    ];
+    this.walkingAnimation[0].src =
+        `${IMAGE_DIR}/characters/player/walking_1.png`;
+    this.walkingAnimation[1].src =
+        `${IMAGE_DIR}/characters/player/walking_2.png`;
+    // disable aliasing
+    this.walkingAnimation.forEach(
+        img => { img.style.imageRendering = "pixelated"; });
+
+    this.idleImage = new Image();
+    this.idleImage.src = `${IMAGE_DIR}/characters/player/idle.png`;
+
+    this.walkingFrame = 0;
+    this.isWalking = false;
+    this.lastWalkFrameTime = new Date().getTime();
+
     this.position = new Vector2(0, 0);
+    this.velocity = new Vector2(0, 0);
+
+    this.lastMoveTime = new Date().getTime();
+  }
+
+  handleKey(e, isPressed) {
+    const speed = 2 * 4;
+    if (isPressed) {
+      if (e.key === "ArrowUp") {
+        this.velocity.y -= speed;
+      } else if (e.key === "ArrowDown") {
+        this.velocity.y += speed;
+      } else if (e.key === "ArrowLeft") {
+        this.velocity.x -= speed;
+      } else if (e.key === "ArrowRight") {
+        this.velocity.x += speed;
+      }
+    } else {
+      if (e.key === "ArrowUp") {
+        this.velocity.y += speed;
+      } else if (e.key === "ArrowDown") {
+        this.velocity.y -= speed;
+      } else if (e.key === "ArrowLeft") {
+        this.velocity.x += speed;
+      } else if (e.key === "ArrowRight") {
+        this.velocity.x -= speed;
+      }
+    }
+    this.velocity.x = Math.min(speed, Math.max(-speed, this.velocity.x));
+    this.velocity.y = Math.min(speed, Math.max(-speed, this.velocity.y));
+
+    this.isWalking = this.velocity.magnitude() > 0
   }
 
   advanceHour() {
@@ -82,6 +134,13 @@ class Player {
     this.hygiene.update();
     this.rizz.update();
     this.grades.forEach(g => g.update());
+
+    const now = new Date().getTime();
+    if (now - this.lastMoveTime > 50) {
+      // Update position based on velocity
+      this.position = this.position.add(this.velocity);
+      this.lastMoveTime = now;
+    }
   }
 
   getRemainingSwipes() { return this.mealPlan.normal + this.mealPlan.special; }
@@ -225,8 +284,19 @@ class Player {
       y += 50;
     });
 
-    ctx.fillStyle = "white";
-    ctx.fillRect(this.position.x, this.position.y, 50, 50);
+    // render image if walking
+    if (this.isWalking) {
+      const now = new Date().getTime();
+      if (now - this.lastWalkFrameTime > 300) {
+        this.walkingFrame =
+            (this.walkingFrame + 1) % this.walkingAnimation.length;
+        this.lastWalkFrameTime = now;
+      }
+      ctx.drawImage(this.walkingAnimation[this.walkingFrame], this.position.x,
+                    this.position.y, 64, 64);
+    } else {
+      ctx.drawImage(this.idleImage, this.position.x, this.position.y, 64, 64);
+    }
   }
 }
 
