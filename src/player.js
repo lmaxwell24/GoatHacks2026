@@ -1,35 +1,34 @@
-import { Stat } from "./stat.js";
-import { MathUtil } from "./mathutil.js";
-import { IMAGE_DIR } from "./background.js";
+import {IMAGE_DIR} from "./background.js";
+import {MathUtil} from "./mathutil.js";
+import {Stat} from "./stat.js";
+import {Vector2} from "./vector.js";
 
 class Player {
-  constructor(game) {
-    this.game = game;
-
-    this.food = new Stat({ initialValue: 100, hourlyChange: -5 });
-    this.water = new Stat({ initialValue: 100, hourlyChange: -7 });
-    this.sleep = new Stat({ initialValue: 100, hourlyChange: -4 });
-    this.sanity = new Stat({ initialValue: 100, hourlyChange: -1 });
-    this.hygiene = new Stat({ initialValue: 100, hourlyChange: -2 });
-    this.rizz = new Stat({ initialValue: 50, hourlyChange: 0 });
+  constructor() {
+    this.food = new Stat({initialValue : 100, hourlyChange : -5});
+    this.water = new Stat({initialValue : 100, hourlyChange : -7});
+    this.sleep = new Stat({initialValue : 100, hourlyChange : -4});
+    this.sanity = new Stat({initialValue : 100, hourlyChange : -1});
+    this.hygiene = new Stat({initialValue : 100, hourlyChange : -2});
+    this.rizz = new Stat({initialValue : 50, hourlyChange : 0});
 
     this.grades = [
-      new Stat({ initialValue: 80, dailyChange: -1 }),
-      new Stat({ initialValue: 80, dailyChange: -1 }),
-      new Stat({ initialValue: 80, dailyChange: -1 })
+      new Stat({initialValue : 80, dailyChange : -1}),
+      new Stat({initialValue : 80, dailyChange : -1}),
+      new Stat({initialValue : 80, dailyChange : -1})
     ];
 
     // Load bar overlay images
     this.barImages = {
-      food: new Image(),
-      water: new Image(),
-      sleep: new Image(),
-      sanity: new Image(),
-      hygiene: new Image(),
-      rizz: new Image(),
-      grade1: new Image(),
-      grade2: new Image(),
-      grade3: new Image()
+      food : new Image(),
+      water : new Image(),
+      sleep : new Image(),
+      sanity : new Image(),
+      hygiene : new Image(),
+      rizz : new Image(),
+      grade1 : new Image(),
+      grade2 : new Image(),
+      grade3 : new Image()
     };
 
     this.barImages.food.src = `${IMAGE_DIR}/food_bar.png`;
@@ -44,16 +43,18 @@ class Player {
 
     // Meal plan system - Easy: 15 special swipes a week
     this.mealPlan = {
-      difficulty: "easy",
-      normal: 0,
-      special: 15,
-      normalMax: 0,
-      specialMax: 15
+      difficulty : "easy",
+      normal : 0,
+      special : 15,
+      normalMax : 0,
+      specialMax : 15
     };
 
     this.isSleeping = false;
     this.hoursSinceSleep = 0;
     this.sick = false;
+
+    this.position = new Vector2(0, 0);
   }
 
   advanceHour() {
@@ -70,9 +71,7 @@ class Player {
     }
   }
 
-  advanceDay() {
-    this.grades.forEach(g => g.advanceDay());
-  }
+  advanceDay() { this.grades.forEach(g => g.advanceDay()); }
 
   update() {
     // Update all stat animations
@@ -85,12 +84,11 @@ class Player {
     this.grades.forEach(g => g.update());
   }
 
-  getRemainingSwipes() {
-    return this.mealPlan.normal + this.mealPlan.special;
-  }
+  getRemainingSwipes() { return this.mealPlan.normal + this.mealPlan.special; }
 
   getSwipesString() {
-    return `Normal: ${this.mealPlan.normal} | Special: ${this.mealPlan.special}`;
+    return `Normal: ${this.mealPlan.normal} | Special: ${
+        this.mealPlan.special}`;
   }
 
   sleepHours(hours) {
@@ -124,9 +122,7 @@ class Player {
     this.water.changeValue(5);
   }
 
-  drinkWater() {
-    this.water.changeValue(10);
-  }
+  drinkWater() { this.water.changeValue(10); }
 
   eatAtCC() {
     if (this.mealPlan.normal > 0) {
@@ -205,24 +201,33 @@ class Player {
     }
   }
 
-  askForTime() {
-    this.sanity.changeValue(-5);
-  }
+  askForTime() { this.sanity.changeValue(-5); }
 
   render(ctx) {
     let y = 10;
-    this.food.drawBar(ctx, 10, y, "Food", this.barImages.food); y += 50;
-    this.water.drawBar(ctx, 10, y, "Water", this.barImages.water); y += 50;
-    this.sleep.drawBar(ctx, 10, y, "Sleep", this.barImages.sleep); y += 50;
-    this.sanity.drawBar(ctx, 10, y, "Sanity", this.barImages.sanity); y += 50;
-    this.hygiene.drawBar(ctx, 10, y, "Hygiene", this.barImages.hygiene); y += 50;
-    this.rizz.drawBar(ctx, 10, y, "Rizz", this.barImages.rizz); y += 50;
+    this.food.drawBar(ctx, 10, y, "Food", this.barImages.food);
+    y += 50;
+    this.water.drawBar(ctx, 10, y, "Water", this.barImages.water);
+    y += 50;
+    this.sleep.drawBar(ctx, 10, y, "Sleep", this.barImages.sleep);
+    y += 50;
+    this.sanity.drawBar(ctx, 10, y, "Sanity", this.barImages.sanity);
+    y += 50;
+    this.hygiene.drawBar(ctx, 10, y, "Hygiene", this.barImages.hygiene);
+    y += 50;
+    this.rizz.drawBar(ctx, 10, y, "Rizz", this.barImages.rizz);
+    y += 50;
 
-    const gradeImages = [this.barImages.grade1, this.barImages.grade2, this.barImages.grade3];
+    const gradeImages =
+        [ this.barImages.grade1, this.barImages.grade2, this.barImages.grade3 ];
     this.grades.forEach((g, i) => {
-      g.drawBar(ctx, 10, y, `Grade ${i + 1}`, gradeImages[i]); y += 50;
+      g.drawBar(ctx, 10, y, `Grade ${i + 1}`, gradeImages[i]);
+      y += 50;
     });
+
+    ctx.fillStyle = "white";
+    ctx.fillRect(this.position.x, this.position.y, 50, 50);
   }
 }
 
-export { Player };
+export {Player};

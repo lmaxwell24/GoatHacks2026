@@ -15,15 +15,15 @@ class Menu {
     this.emphasizeIndex = emphasizeIndex;
   }
 
-  close() {
-    this.active = false;
-  }
+  close() { this.active = false; }
 
   handleKey(e) {
-    if (!this.active) return;
+    if (!this.active)
+      return;
 
     if (e.key === "ArrowUp") {
-      this.selected = (this.selected - 1 + this.options.length) % this.options.length;
+      this.selected =
+          (this.selected - 1 + this.options.length) % this.options.length;
     }
 
     if (e.key === "ArrowDown") {
@@ -33,12 +33,14 @@ class Menu {
     if (e.key === "Enter") {
       const choice = this.options[this.selected];
       this.close();
-      if (this.onSelect) this.onSelect(choice);
+      if (this.onSelect)
+        this.onSelect(choice);
     }
   }
 
   draw(ctx) {
-    if (!this.active) return;
+    if (!this.active)
+      return;
 
     ctx.fillStyle = "rgba(0,0,0,0.6)";
     ctx.fillRect(0, 0, 1280, 720);
@@ -47,7 +49,7 @@ class Menu {
 
     this.options.forEach((opt, i) => {
       const y = 250 + i * 50;
-      
+
       // Determine color
       let fillColor = "white";
       if (i === this.selected) {
@@ -55,9 +57,9 @@ class Menu {
       } else if (i === this.emphasizeIndex) {
         fillColor = "#FF6B6B"; // Red for emphasized
       }
-      
+
       ctx.fillStyle = fillColor;
-      
+
       // Underline emphasized option if not selected
       if (i === this.emphasizeIndex && i !== this.selected) {
         ctx.fillText(opt, 200, y);
@@ -75,4 +77,4 @@ class Menu {
   }
 }
 
-export { Menu };
+export {Menu};
