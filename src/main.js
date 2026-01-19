@@ -3,13 +3,22 @@ import {Game} from "./game.js";
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
+ctx.imageSmoothingEnabled = false;
+
 const game = new Game();
 
-const updateLoop =
-    () => {
-      game.update();
-      game.render(ctx);
-      requestAnimationFrame(updateLoop);
-    }
+async function main() {
+    await game.initialize();
+    game.openStartingScene();
 
-updateLoop();
+    const updateLoop =
+        () => {
+          game.update();
+          game.render(ctx);
+          requestAnimationFrame(updateLoop);
+        }
+
+    updateLoop();
+}
+
+main();

@@ -3,22 +3,37 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Index</title>
+    <title>GoatHacks 2026</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75'>🐐</text></svg>" />
     <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
       body {
         margin: 0;
         padding: 0;
+        overflow: hidden;
+        width: 100vw;
+        height: 100vh;
       }
       canvas {
+        image-rendering: optimizeSpeed;             /* Older versions of FF          */
+  image-rendering: -moz-crisp-edges;          /* FF 6.0+                       */
+  image-rendering: -webkit-optimize-contrast; /* Safari                        */
+  image-rendering: -o-crisp-edges;            /* OS X & Windows Opera (12.02+) */
+  image-rendering: pixelated;                 /* Awesome future-browsers       */
+  -ms-interpolation-mode: nearest-neighbor;   /* IE                            */
+        aspect-ratio: 16 / 9;
         width: 100%;
-        height: 100%;
         display: block;
         background-color: #f0f0f0;
-        object-fit: contain;
       }
     </style>
   </head>
   <body>
+    
     <canvas id="canvas" width="1280" height="720"></canvas>
     <script src="main.js" type="module"></script>
   </body>
